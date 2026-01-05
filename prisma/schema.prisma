@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Subject {
+  id        String    @id @default(cuid())
+  name      String
+  order     Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  articles  Article[]
+
+  @@map("subjects")
+}
+
+model Article {
+  id        String   @id @default(cuid())
+  subjectId String   @map("subject_id")
+  title     String
+  bodyMd    String   @map("body_md") @db.Text
+  tags      String[] @default([])
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  quizzes   Quiz[]
+
+  @@map("articles")
+}
+
+model Quiz {
+  id          String   @id @default(cuid())
+  articleId   String   @map("article_id")
+  question    String   @db.Text
+  quizType    QuizType @default(TRUE_FALSE) @map("quiz_type")
+  answer      String
+  explanation String?  @db.Text
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  article     Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@map("quizzes")
+}
+
+enum QuizType {
+  TRUE_FALSE
+  SHORT_TEXT
+  NUMBER
+}
+
+model UserProgress {
+  id             String         @id @default(cuid())
+  userId         String         @default("default-user") @map("user_id")
+  targetType     TargetType     @map("target_type")
+  targetId       String         @map("target_id")
+  status         ProgressStatus @default(NOT_STARTED)
+  score          Int?
+  lastAccessedAt DateTime       @default(now()) @map("last_accessed_at")
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@unique([userId, targetType, targetId])
+  @@index([userId])
+  @@index([targetType, targetId])
+  @@map("user_progress")
+}
+
+enum TargetType {
+  ARTICLE
+  QUIZ
+}
+
+enum ProgressStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
