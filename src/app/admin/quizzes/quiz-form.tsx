@@ -13,7 +13,7 @@ type Article = {
   subject: { name: string };
 };
 
-type QuizType = "TRUE_FALSE" | "SHORT_TEXT" | "NUMBER";
+type QuizType = "TRUE_FALSE" | "SHORT_TEXT" | "NUMBER" | "MULTIPLE_CHOICE";
 
 export function QuizForm({
   articles,
@@ -26,6 +26,7 @@ export function QuizForm({
   const [question, setQuestion] = useState("");
   const [quizType, setQuizType] = useState<QuizType>("TRUE_FALSE");
   const [answer, setAnswer] = useState("");
+  const [choices, setChoices] = useState<string[]>(["", "", "", ""]);
   const [explanation, setExplanation] = useState("");
   const [order, setOrder] = useState("0");
   const [isPending, startTransition] = useTransition();
@@ -34,17 +35,22 @@ export function QuizForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     startTransition(async () => {
+      const filteredChoices = quizType === "MULTIPLE_CHOICE"
+        ? choices.filter((c) => c.trim() !== "")
+        : [];
       const result = await createQuiz({
         articleId,
         question,
         quizType,
         answer,
+        choices: filteredChoices,
         explanation: explanation || null,
         order: parseInt(order, 10),
       });
       if (result.success) {
         setQuestion("");
         setAnswer("");
+        setChoices(["", "", "", ""]);
         setExplanation("");
         setOrder("0");
         setMessage("クイズを作成しました");
@@ -85,6 +91,7 @@ export function QuizForm({
             <option value="TRUE_FALSE">○×問題</option>
             <option value="SHORT_TEXT">短文回答</option>
             <option value="NUMBER">数値回答</option>
+            <option value="MULTIPLE_CHOICE">選択式問題</option>
           </select>
         </div>
       </div>
@@ -101,11 +108,43 @@ export function QuizForm({
         />
       </div>
 
+      {quizType === "MULTIPLE_CHOICE" && (
+        <div className="space-y-3">
+          <Label>選択肢（2〜4個入力）</Label>
+          {choices.map((choice, index) => (
+            <div key={index} className="flex items-center gap-2">
+              <span className="w-6 text-sm text-muted-foreground">{index + 1}.</span>
+              <Input
+                value={choice}
+                onChange={(e) => {
+                  const newChoices = [...choices];
+                  newChoices[index] = e.target.value;
+                  setChoices(newChoices);
+                }}
+                placeholder={`選択肢 ${index + 1}`}
+              />
+              <input
+                type="radio"
+                name="correctChoice"
+                checked={answer === choice && choice !== ""}
+                onChange={() => setAnswer(choice)}
+                className="w-4 h-4"
+                title="正解を選択"
+              />
+            </div>
+          ))}
+          <p className="text-xs text-muted-foreground">
+            ラジオボタンで正解の選択肢を選んでください
+          </p>
+        </div>
+      )}
+
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="answer">
             正解
             {quizType === "TRUE_FALSE" && " (true または false)"}
+            {quizType === "MULTIPLE_CHOICE" && " (上の選択肢から選択)"}
           </Label>
           {quizType === "TRUE_FALSE" ? (
             <select
@@ -119,6 +158,16 @@ export function QuizForm({
               <option value="true">○ (正しい)</option>
               <option value="false">× (誤り)</option>
             </select>
+          ) : quizType === "MULTIPLE_CHOICE" ? (
+            <Input
+              id="answer"
+              value={answer}
+              onChange={(e) => setAnswer(e.target.value)}
+              placeholder="上の選択肢から選択されます"
+              required
+              readOnly
+              className="bg-muted"
+            />
           ) : (
             <Input
               id="answer"

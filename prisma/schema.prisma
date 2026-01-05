@@ -8,6 +8,61 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+// NextAuth.js 認証モデル
+model User {
+  id            String          @id @default(cuid())
+  name          String?
+  email         String?         @unique
+  emailVerified DateTime?       @map("email_verified")
+  image         String?
+  password      String?
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+  accounts      Account[]
+  sessions      Session[]
+  progress      UserProgress[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
 model Subject {
   id        String    @id @default(cuid())
   name      String
@@ -40,6 +95,7 @@ model Quiz {
   question    String   @db.Text
   quizType    QuizType @default(TRUE_FALSE) @map("quiz_type")
   answer      String
+  choices     String[] @default([])
   explanation String?  @db.Text
   order       Int      @default(0)
   createdAt   DateTime @default(now())
@@ -53,11 +109,12 @@ enum QuizType {
   TRUE_FALSE
   SHORT_TEXT
   NUMBER
+  MULTIPLE_CHOICE
 }
 
 model UserProgress {
   id             String         @id @default(cuid())
-  userId         String         @default("default-user") @map("user_id")
+  userId         String         @map("user_id")
   targetType     TargetType     @map("target_type")
   targetId       String         @map("target_id")
   status         ProgressStatus @default(NOT_STARTED)
@@ -65,6 +122,7 @@ model UserProgress {
   lastAccessedAt DateTime       @default(now()) @map("last_accessed_at")
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // 間隔反復（Spaced Repetition）用フィールド
   easeFactor   Float     @default(2.5) @map("ease_factor")

@@ -13,8 +13,9 @@ import { CheckCircle, XCircle, RefreshCw, FileText, Lightbulb, ChevronRight, Tro
 type Quiz = {
   id: string;
   question: string;
-  quizType: "TRUE_FALSE" | "SHORT_TEXT" | "NUMBER";
+  quizType: "TRUE_FALSE" | "SHORT_TEXT" | "NUMBER" | "MULTIPLE_CHOICE";
   answer: string;
+  choices?: string[];
   explanation: string | null;
 };
 
@@ -51,6 +52,8 @@ export function QuizClient({
       isCorrect = normalizedUserAnswer === normalizedCorrectAnswer;
     } else if (currentQuiz.quizType === "NUMBER") {
       isCorrect = parseFloat(normalizedUserAnswer) === parseFloat(normalizedCorrectAnswer);
+    } else if (currentQuiz.quizType === "MULTIPLE_CHOICE") {
+      isCorrect = normalizedUserAnswer === normalizedCorrectAnswer;
     } else {
       isCorrect = normalizedUserAnswer === normalizedCorrectAnswer;
     }
@@ -178,6 +181,7 @@ export function QuizClient({
             {currentQuiz.quizType === "TRUE_FALSE" && "○×問題"}
             {currentQuiz.quizType === "SHORT_TEXT" && "短文回答"}
             {currentQuiz.quizType === "NUMBER" && "数値回答"}
+            {currentQuiz.quizType === "MULTIPLE_CHOICE" && "選択式問題"}
           </Badge>
         </div>
         <Progress value={progressPercent} size="sm" />
@@ -209,6 +213,22 @@ export function QuizClient({
                   <XCircle className="w-5 h-5" />
                   × 誤り
                 </Button>
+              </div>
+            ) : currentQuiz.quizType === "MULTIPLE_CHOICE" && currentQuiz.choices ? (
+              <div className="space-y-2">
+                {currentQuiz.choices.map((choice, index) => (
+                  <Button
+                    key={index}
+                    variant={userAnswer === choice ? "default" : "outline"}
+                    onClick={() => setUserAnswer(choice)}
+                    className={`w-full h-auto min-h-12 text-base justify-start px-4 py-3 text-left whitespace-normal ${
+                      userAnswer === choice ? "" : "hover:border-primary/50"
+                    }`}
+                  >
+                    <span className="w-6 shrink-0 font-medium">{String.fromCharCode(65 + index)}.</span>
+                    <span className="flex-1">{choice}</span>
+                  </Button>
+                ))}
               </div>
             ) : (
               <Input
@@ -260,7 +280,9 @@ export function QuizClient({
                       ? currentQuiz.answer === "true"
                         ? "○ (正しい)"
                         : "× (誤り)"
-                      : currentQuiz.answer}
+                      : currentQuiz.quizType === "MULTIPLE_CHOICE" && currentQuiz.choices
+                        ? `${String.fromCharCode(65 + currentQuiz.choices.indexOf(currentQuiz.answer))}. ${currentQuiz.answer}`
+                        : currentQuiz.answer}
                   </span>
                 </div>
                 {!currentResult?.isCorrect && (
@@ -271,7 +293,9 @@ export function QuizClient({
                         ? userAnswer === "true"
                           ? "○ (正しい)"
                           : "× (誤り)"
-                        : userAnswer}
+                        : currentQuiz.quizType === "MULTIPLE_CHOICE" && currentQuiz.choices
+                          ? `${String.fromCharCode(65 + currentQuiz.choices.indexOf(userAnswer))}. ${userAnswer}`
+                          : userAnswer}
                     </span>
                   </div>
                 )}

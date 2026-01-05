@@ -75,6 +75,7 @@ export default async function QuizPage({
           question: q.question,
           quizType: q.quizType,
           answer: q.answer,
+          choices: q.choices,
           explanation: q.explanation,
         }))}
         articleId={article.id}

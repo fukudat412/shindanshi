@@ -1,11 +1,24 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
 import { PracticeClient } from "./practice-client";
 import { ChevronLeft, Shuffle } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
-const DEFAULT_USER_ID = "default-user";
+async function getOrCreateGuestUser() {
+  const guestEmail = "guest@shindanshi.local";
+  let user = await prisma.user.findUnique({ where: { email: guestEmail } });
+  if (!user) {
+    user = await prisma.user.create({
+      data: {
+        email: guestEmail,
+        name: "ゲストユーザー",
+      },
+    });
+  }
+  return user.id;
+}
 
 async function getSubjects() {
   return prisma.subject.findMany({
@@ -23,13 +36,14 @@ async function getSubjects() {
 async function getRandomQuizzes(
   subjectIds: string[],
   count: number,
-  mode?: string
+  mode?: string,
+  userId?: string
 ) {
   // 弱点モードの場合、間違えた問題を優先
-  if (mode === "weakness") {
+  if (mode === "weakness" && userId) {
     const weakQuizProgress = await prisma.userProgress.findMany({
       where: {
-        userId: DEFAULT_USER_ID,
+        userId,
         targetType: "QUIZ",
         OR: [{ score: 0 }, { score: null }, { status: "IN_PROGRESS" }],
       },
@@ -83,6 +97,8 @@ export default async function PracticePage({
   }>;
 }) {
   const params = await searchParams;
+  const session = await auth();
+  const userId = session?.user?.id ?? await getOrCreateGuestUser();
   const subjects = await getSubjects();
 
   // 科目ごとのクイズ数を計算
@@ -100,7 +116,7 @@ export default async function PracticePage({
   if (params.started === "true" && params.subjectIds) {
     const ids = params.subjectIds.split(",");
     const count = parseInt(params.count ?? "10", 10);
-    quizzes = await getRandomQuizzes(ids, count, params.mode);
+    quizzes = await getRandomQuizzes(ids, count, params.mode, userId);
   }
 
   return (
@@ -137,6 +153,7 @@ export default async function PracticePage({
             question: q.question,
             quizType: q.quizType,
             answer: q.answer,
+            choices: q.choices,
             explanation: q.explanation,
             subjectName: q.article.subject.name,
           })) ?? null
