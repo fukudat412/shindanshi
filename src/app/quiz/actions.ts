@@ -2,16 +2,32 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
 import { calculateSM2 } from "@/lib/spaced-repetition";
 
-const DEFAULT_USER_ID = "default-user";
+async function getOrCreateGuestUser() {
+  const guestEmail = "guest@shindanshi.local";
+  let user = await prisma.user.findUnique({ where: { email: guestEmail } });
+  if (!user) {
+    user = await prisma.user.create({
+      data: {
+        email: guestEmail,
+        name: "ゲストユーザー",
+      },
+    });
+  }
+  return user.id;
+}
 
 export async function saveQuizResult(quizId: string, score: number) {
+  const session = await auth();
+  const userId = session?.user?.id ?? await getOrCreateGuestUser();
+
   // 既存の進捗を取得（SM-2計算に必要）
   const existing = await prisma.userProgress.findUnique({
     where: {
       userId_targetType_targetId: {
-        userId: DEFAULT_USER_ID,
+        userId,
         targetType: "QUIZ",
         targetId: quizId,
       },
@@ -29,7 +45,7 @@ export async function saveQuizResult(quizId: string, score: number) {
   await prisma.userProgress.upsert({
     where: {
       userId_targetType_targetId: {
-        userId: DEFAULT_USER_ID,
+        userId,
         targetType: "QUIZ",
         targetId: quizId,
       },
@@ -45,7 +61,7 @@ export async function saveQuizResult(quizId: string, score: number) {
       attemptCount: { increment: 1 },
     },
     create: {
-      userId: DEFAULT_USER_ID,
+      userId,
       targetType: "QUIZ",
       targetId: quizId,
       status: score === 100 ? "COMPLETED" : "IN_PROGRESS",

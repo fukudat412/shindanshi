@@ -6,8 +6,9 @@ import { prisma } from "@/lib/prisma";
 type CreateQuizInput = {
   articleId: string;
   question: string;
-  quizType: "TRUE_FALSE" | "SHORT_TEXT" | "NUMBER";
+  quizType: "TRUE_FALSE" | "SHORT_TEXT" | "NUMBER" | "MULTIPLE_CHOICE";
   answer: string;
+  choices?: string[];
   explanation: string | null;
   order: number;
 };
@@ -15,7 +16,15 @@ type CreateQuizInput = {
 export async function createQuiz(input: CreateQuizInput) {
   try {
     await prisma.quiz.create({
-      data: input,
+      data: {
+        articleId: input.articleId,
+        question: input.question,
+        quizType: input.quizType,
+        answer: input.answer,
+        choices: input.choices ?? [],
+        explanation: input.explanation,
+        order: input.order,
+      },
     });
     revalidatePath("/admin/quizzes");
     revalidatePath(`/articles/${input.articleId}`);
