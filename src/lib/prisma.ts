@@ -10,4 +10,5 @@ export const prisma =
     log: process.env.NODE_ENV === "development" ? ["query"] : [],
   });
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+// 本番環境でもキャッシュして、コールドスタート時の再初期化を防ぐ
+if (!globalForPrisma.prisma) globalForPrisma.prisma = prisma;
