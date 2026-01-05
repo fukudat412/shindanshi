@@ -62,21 +62,3 @@ export function calculateSM2(input: SM2Input): SM2Result {
     nextReviewAt,
   };
 }
-
-/**
- * 復習が必要かどうかを判定
- */
-export function isDueForReview(nextReviewAt: Date | null): boolean {
-  if (!nextReviewAt) return true; // 一度も復習していない場合は復習対象
-  return new Date() >= nextReviewAt;
-}
-
-/**
- * 復習の緊急度を計算（日数で表現、負の値は期限切れ）
- */
-export function getDaysUntilReview(nextReviewAt: Date | null): number {
-  if (!nextReviewAt) return -999; // 未学習は最優先
-  const now = new Date();
-  const diffTime = nextReviewAt.getTime() - now.getTime();
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-}

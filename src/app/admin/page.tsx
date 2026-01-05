@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { prisma } from "@/lib/prisma";
 import { BookOpen, FileText, HelpCircle, Settings, ChevronRight } from "lucide-react";
 
