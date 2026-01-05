@@ -41,6 +41,9 @@ export default function RootLayout({
               診断士学習
             </Link>
             <NavLink href="/subjects" label="科目一覧" />
+            <NavLink href="/practice" label="ランダム演習" />
+            <NavLink href="/weakness" label="弱点分析" />
+            <NavLink href="/stats" label="学習統計" />
             <Link
               href="/admin"
               className="ml-auto text-sm text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-md hover:bg-muted"

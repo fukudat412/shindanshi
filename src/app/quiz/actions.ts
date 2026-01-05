@@ -2,10 +2,30 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { calculateSM2 } from "@/lib/spaced-repetition";
 
 const DEFAULT_USER_ID = "default-user";
 
 export async function saveQuizResult(quizId: string, score: number) {
+  // 既存の進捗を取得（SM-2計算に必要）
+  const existing = await prisma.userProgress.findUnique({
+    where: {
+      userId_targetType_targetId: {
+        userId: DEFAULT_USER_ID,
+        targetType: "QUIZ",
+        targetId: quizId,
+      },
+    },
+  });
+
+  // SM-2アルゴリズムで次回復習日を計算
+  const sm2Result = calculateSM2({
+    isCorrect: score === 100,
+    easeFactor: existing?.easeFactor ?? 2.5,
+    interval: existing?.interval ?? 0,
+    repetitions: existing?.repetitions ?? 0,
+  });
+
   await prisma.userProgress.upsert({
     where: {
       userId_targetType_targetId: {
@@ -18,6 +38,11 @@ export async function saveQuizResult(quizId: string, score: number) {
       status: score === 100 ? "COMPLETED" : "IN_PROGRESS",
       score,
       lastAccessedAt: new Date(),
+      easeFactor: sm2Result.easeFactor,
+      interval: sm2Result.interval,
+      repetitions: sm2Result.repetitions,
+      nextReviewAt: sm2Result.nextReviewAt,
+      attemptCount: { increment: 1 },
     },
     create: {
       userId: DEFAULT_USER_ID,
@@ -25,6 +50,11 @@ export async function saveQuizResult(quizId: string, score: number) {
       targetId: quizId,
       status: score === 100 ? "COMPLETED" : "IN_PROGRESS",
       score,
+      easeFactor: sm2Result.easeFactor,
+      interval: sm2Result.interval,
+      repetitions: sm2Result.repetitions,
+      nextReviewAt: sm2Result.nextReviewAt,
+      attemptCount: 1,
     },
   });
 

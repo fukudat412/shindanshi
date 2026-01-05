@@ -66,9 +66,17 @@ model UserProgress {
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
+  // 間隔反復（Spaced Repetition）用フィールド
+  easeFactor   Float     @default(2.5) @map("ease_factor")
+  interval     Int       @default(0)
+  nextReviewAt DateTime? @map("next_review_at")
+  repetitions  Int       @default(0)
+  attemptCount Int       @default(0) @map("attempt_count")
+
   @@unique([userId, targetType, targetId])
   @@index([userId])
   @@index([targetType, targetId])
+  @@index([userId, nextReviewAt])
   @@map("user_progress")
 }
 

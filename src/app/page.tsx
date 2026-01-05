@@ -58,27 +58,45 @@ async function getProgress() {
     };
   });
 
-  const reviewQuizzes = await prisma.userProgress.findMany({
+  // 復習が必要なクイズ（SM-2アルゴリズムに基づく）
+  const now = new Date();
+  const dueQuizzes = await prisma.userProgress.findMany({
     where: {
       userId: DEFAULT_USER_ID,
       targetType: "QUIZ",
       OR: [
+        // 復習期限が過ぎている
+        { nextReviewAt: { lte: now } },
+        // まだ一度も正解していない
         { status: "IN_PROGRESS" },
-        {
-          status: "COMPLETED",
-          score: { lt: 100 },
-        },
+        // nextReviewAtが設定されていない（既存データ対応）
+        { nextReviewAt: null, attemptCount: { gt: 0 } },
       ],
     },
-    orderBy: { lastAccessedAt: "asc" },
+    orderBy: [
+      { nextReviewAt: "asc" }, // 最も期限が古いものから
+    ],
     take: 5,
   });
 
-  return { subjectStats, reviewQuizzes };
+  // 全体の復習待ち件数
+  const dueCount = await prisma.userProgress.count({
+    where: {
+      userId: DEFAULT_USER_ID,
+      targetType: "QUIZ",
+      OR: [
+        { nextReviewAt: { lte: now } },
+        { status: "IN_PROGRESS" },
+        { nextReviewAt: null, attemptCount: { gt: 0 } },
+      ],
+    },
+  });
+
+  return { subjectStats, dueQuizzes, dueCount };
 }
 
 export default async function Home() {
-  const { subjectStats, reviewQuizzes } = await getProgress();
+  const { subjectStats, dueQuizzes, dueCount } = await getProgress();
 
   const totalArticles = subjectStats.reduce((acc, s) => acc + s.totalArticles, 0);
   const completedArticles = subjectStats.reduce((acc, s) => acc + s.completedArticles, 0);
@@ -161,20 +179,30 @@ export default async function Home() {
         </Card>
       </div>
 
-      {reviewQuizzes.length > 0 && (
-        <Card className="border-warning/30 bg-warning/5">
+      {dueQuizzes.length > 0 && (
+        <Card className="border-warning/30 bg-gradient-to-r from-warning/5 to-transparent">
           <CardHeader className="flex flex-row items-center gap-4 space-y-0">
             <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-warning/20 text-warning-foreground">
               <RefreshCw className="w-5 h-5" />
             </div>
-            <div>
+            <div className="flex-1">
               <CardTitle className="text-lg">復習が必要なクイズ</CardTitle>
-              <CardDescription>間違えた問題や未完了の問題</CardDescription>
+              <CardDescription>
+                間隔反復アルゴリズムに基づく復習推奨
+                {dueCount > 5 && ` (あと${dueCount - 5}件)`}
+              </CardDescription>
             </div>
+            <Link
+              href="/practice?mode=weakness"
+              className="text-sm text-primary hover:text-primary/80 font-medium flex items-center gap-1 transition-colors"
+            >
+              まとめて復習
+              <ChevronRight className="w-4 h-4" />
+            </Link>
           </CardHeader>
           <CardContent>
             <ul className="space-y-3">
-              {reviewQuizzes.map((progress) => (
+              {dueQuizzes.map((progress) => (
                 <li key={progress.id} className="flex items-center justify-between p-3 rounded-lg bg-background border hover:border-primary/30 transition-colors">
                   <Link
                     href={`/quiz?quizId=${progress.targetId}`}
@@ -183,9 +211,16 @@ export default async function Home() {
                     <HelpCircle className="w-4 h-4 text-muted-foreground" />
                     クイズ #{progress.targetId.slice(-6)}
                   </Link>
-                  <Badge variant={progress.status === "IN_PROGRESS" ? "warning" : "outline"}>
-                    {progress.status === "IN_PROGRESS" ? "未完了" : `${progress.score}%`}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    {progress.nextReviewAt && (
+                      <span className="text-xs text-muted-foreground">
+                        {progress.nextReviewAt < new Date() ? "期限切れ" : "今日復習"}
+                      </span>
+                    )}
+                    <Badge variant={progress.status === "IN_PROGRESS" ? "warning" : "outline"}>
+                      {progress.status === "IN_PROGRESS" ? "未習得" : `${progress.score}%`}
+                    </Badge>
+                  </div>
                 </li>
               ))}
             </ul>
