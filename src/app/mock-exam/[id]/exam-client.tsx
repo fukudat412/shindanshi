@@ -124,6 +124,9 @@ export function ExamClient({
     }
   }, [examId, currentQuiz.id, answers]);
 
+  // handleSubmit用のrefを用意してメモリリークを防ぐ
+  const handleSubmitRef = useRef<(() => Promise<void>) | null>(null);
+
   // 提出
   const handleSubmit = useCallback(async () => {
     if (isSubmitting) return;
@@ -134,24 +137,32 @@ export function ExamClient({
     });
   }, [examId, saveCurrentAnswer, isSubmitting]);
 
-  // タイマー
+  // refを最新の関数で更新
+  useEffect(() => {
+    handleSubmitRef.current = handleSubmit;
+  });
+
+  // タイマー（Date.nowベースで精度向上）
   useEffect(() => {
     if (isPaused || isSubmitting) return;
 
+    const endTime = Date.now() + remainingSeconds * 1000;
+
     const timer = setInterval(() => {
-      setRemainingSeconds((prev) => {
-        if (prev <= 1) {
-          // 時間切れで自動提出
-          clearInterval(timer);
-          handleSubmit();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+      const now = Date.now();
+      const remaining = Math.max(0, Math.ceil((endTime - now) / 1000));
+
+      setRemainingSeconds(remaining);
+
+      if (remaining <= 0) {
+        // 時間切れで自動提出
+        clearInterval(timer);
+        handleSubmitRef.current?.();
+      }
+    }, 200); // より頻繁にチェックして精度向上
 
     return () => clearInterval(timer);
-  }, [isPaused, isSubmitting, handleSubmit]);
+  }, [isPaused, isSubmitting]); // remainingSecondsを除外して再実行を防ぐ
 
   // 回答の更新
   const updateAnswer = (userAnswer: string) => {

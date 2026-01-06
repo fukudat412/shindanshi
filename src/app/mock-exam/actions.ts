@@ -20,6 +20,16 @@ async function getOrCreateGuestUser() {
   return user.id;
 }
 
+// Fisher-Yatesアルゴリズムによる偏りのないシャッフル
+function shuffle<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
 // 模擬試験の作成
 export async function createMockExam(
   subjectIds: string[],
@@ -41,7 +51,7 @@ export async function createMockExam(
   });
 
   // シャッフルして指定数を選択
-  const shuffled = quizzes.sort(() => Math.random() - 0.5);
+  const shuffled = shuffle(quizzes);
   const selectedQuizzes = shuffled.slice(0, questionCount);
 
   // 模擬試験を作成
@@ -148,6 +158,15 @@ export async function resumeExam(examId: string) {
   revalidatePath("/mock-exam");
 }
 
+// 数値比較のヘルパー関数（浮動小数点数の精度を考慮）
+function compareNumbers(userAnswer: string, correctAnswer: string): boolean {
+  const userNum = parseFloat(userAnswer);
+  const correctNum = parseFloat(correctAnswer);
+  if (isNaN(userNum) || isNaN(correctNum)) return false;
+  const epsilon = 0.0001;
+  return Math.abs(userNum - correctNum) < epsilon;
+}
+
 // 試験の提出（完了）
 export async function submitExam(examId: string) {
   const exam = await prisma.mockExam.findUnique({
@@ -175,90 +194,107 @@ export async function submitExam(examId: string) {
 
   const quizMap = new Map(quizzes.map((q) => [q.id, q]));
 
+  // 既存のUserProgressを一括取得
+  const existingProgress = await prisma.userProgress.findMany({
+    where: {
+      userId: exam.userId,
+      targetType: "QUIZ",
+      targetId: { in: quizIds },
+    },
+  });
+  const progressMap = new Map(existingProgress.map((p) => [p.targetId, p]));
+
   let correctCount = 0;
+
+  // 正誤判定の結果を収集
+  const answerResults: { answerId: string; isCorrect: boolean; quizId: string }[] = [];
 
   for (const answer of answers) {
     const quiz = quizMap.get(answer.quizId);
-    if (!quiz || !answer.userAnswer) continue;
+    if (!quiz || !answer.userAnswer) {
+      answerResults.push({ answerId: answer.id, isCorrect: false, quizId: answer.quizId });
+      continue;
+    }
 
     const normalizedUserAnswer = answer.userAnswer.trim().toLowerCase();
     const normalizedCorrectAnswer = quiz.answer.trim().toLowerCase();
 
     let isCorrect = false;
     if (quiz.quizType === "NUMBER") {
-      isCorrect =
-        parseFloat(normalizedUserAnswer) === parseFloat(normalizedCorrectAnswer);
+      isCorrect = compareNumbers(normalizedUserAnswer, normalizedCorrectAnswer);
     } else {
       isCorrect = normalizedUserAnswer === normalizedCorrectAnswer;
     }
 
     if (isCorrect) correctCount++;
-
-    // 回答の正誤を更新
-    await prisma.mockExamAnswer.update({
-      where: { id: answer.id },
-      data: { isCorrect },
-    });
-
-    // UserProgressにも反映（SM-2）
-    const existing = await prisma.userProgress.findUnique({
-      where: {
-        userId_targetType_targetId: {
-          userId: exam.userId,
-          targetType: "QUIZ",
-          targetId: quiz.id,
-        },
-      },
-    });
-
-    const sm2Result = calculateSM2({
-      isCorrect,
-      easeFactor: existing?.easeFactor ?? 2.5,
-      interval: existing?.interval ?? 0,
-      repetitions: existing?.repetitions ?? 0,
-    });
-
-    await prisma.userProgress.upsert({
-      where: {
-        userId_targetType_targetId: {
-          userId: exam.userId,
-          targetType: "QUIZ",
-          targetId: quiz.id,
-        },
-      },
-      update: {
-        status: isCorrect ? "COMPLETED" : "IN_PROGRESS",
-        score: isCorrect ? 100 : 0,
-        lastAccessedAt: new Date(),
-        easeFactor: sm2Result.easeFactor,
-        interval: sm2Result.interval,
-        repetitions: sm2Result.repetitions,
-        nextReviewAt: sm2Result.nextReviewAt,
-        attemptCount: { increment: 1 },
-      },
-      create: {
-        userId: exam.userId,
-        targetType: "QUIZ",
-        targetId: quiz.id,
-        status: isCorrect ? "COMPLETED" : "IN_PROGRESS",
-        score: isCorrect ? 100 : 0,
-        easeFactor: sm2Result.easeFactor,
-        interval: sm2Result.interval,
-        repetitions: sm2Result.repetitions,
-        nextReviewAt: sm2Result.nextReviewAt,
-        attemptCount: 1,
-      },
-    });
+    answerResults.push({ answerId: answer.id, isCorrect, quizId: answer.quizId });
   }
 
-  // 模擬試験を完了状態に更新
-  await prisma.mockExam.update({
-    where: { id: examId },
-    data: {
-      status: "COMPLETED",
-      completedAt: new Date(),
-      score: correctCount,
-    },
+  // トランザクションで一括更新
+  await prisma.$transaction(async (tx) => {
+    // 回答の正誤を一括更新
+    for (const result of answerResults) {
+      await tx.mockExamAnswer.update({
+        where: { id: result.answerId },
+        data: { isCorrect: result.isCorrect },
+      });
+    }
+
+    // UserProgressを一括upsert
+    for (const result of answerResults) {
+      const quiz = quizMap.get(result.quizId);
+      if (!quiz) continue;
+
+      const existing = progressMap.get(quiz.id);
+      const sm2Result = calculateSM2({
+        isCorrect: result.isCorrect,
+        easeFactor: existing?.easeFactor ?? 2.5,
+        interval: existing?.interval ?? 0,
+        repetitions: existing?.repetitions ?? 0,
+      });
+
+      await tx.userProgress.upsert({
+        where: {
+          userId_targetType_targetId: {
+            userId: exam.userId,
+            targetType: "QUIZ",
+            targetId: quiz.id,
+          },
+        },
+        update: {
+          status: result.isCorrect ? "COMPLETED" : "IN_PROGRESS",
+          score: result.isCorrect ? 100 : 0,
+          lastAccessedAt: new Date(),
+          easeFactor: sm2Result.easeFactor,
+          interval: sm2Result.interval,
+          repetitions: sm2Result.repetitions,
+          nextReviewAt: sm2Result.nextReviewAt,
+          attemptCount: { increment: 1 },
+        },
+        create: {
+          userId: exam.userId,
+          targetType: "QUIZ",
+          targetId: quiz.id,
+          status: result.isCorrect ? "COMPLETED" : "IN_PROGRESS",
+          score: result.isCorrect ? 100 : 0,
+          easeFactor: sm2Result.easeFactor,
+          interval: sm2Result.interval,
+          repetitions: sm2Result.repetitions,
+          nextReviewAt: sm2Result.nextReviewAt,
+          attemptCount: 1,
+        },
+      });
+    }
+
+    // 模擬試験を完了状態に更新
+    await tx.mockExam.update({
+      where: { id: examId },
+      data: {
+        status: "COMPLETED",
+        completedAt: new Date(),
+        score: correctCount,
+      },
+    });
   });
 
   revalidatePath("/mock-exam");
