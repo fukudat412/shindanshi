@@ -53,7 +53,7 @@ jobs:
         run: npx prisma generate
 
       - name: Build
-        run: npm run build
+        run: npx next build
         env:
           DATABASE_URL: "postgresql://placeholder:placeholder@localhost:5432/placeholder"
           NEXTAUTH_SECRET: "placeholder-secret-for-build"
