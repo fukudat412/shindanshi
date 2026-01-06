@@ -65,7 +65,7 @@ export default async function SubjectPage({
   }
 
   // 全タグを収集（重複排除・ソート）
-  const allTags = [...new Set(subject.articles.flatMap((a: { tags: string[] }) => a.tags))].sort() as string[];
+  const allTags: string[] = [...new Set(subject.articles.flatMap((a) => a.tags))].sort();
 
   // フィルタ適用
   const filteredArticles = selectedTags.length > 0

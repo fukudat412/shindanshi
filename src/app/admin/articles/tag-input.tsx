@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { X } from "lucide-react";
@@ -21,10 +21,14 @@ export function TagInput({ value, onChange, existingTags, placeholder = "タグ�
   const containerRef = useRef<HTMLDivElement>(null);
 
   // フィルタされた候補（まだ選択されていないもの）
-  const suggestions = existingTags.filter(
-    (tag) =>
-      !value.includes(tag) &&
-      tag.toLowerCase().includes(inputValue.toLowerCase())
+  const suggestions = useMemo(
+    () =>
+      existingTags.filter(
+        (tag) =>
+          !value.includes(tag) &&
+          tag.toLowerCase().includes(inputValue.toLowerCase())
+      ),
+    [existingTags, value, inputValue]
   );
 
   const addTag = (tag: string) => {
