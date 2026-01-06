@@ -9,7 +9,7 @@ type QuizInput = {
   phase: "INTRO" | "UNDERSTAND" | "RETAIN" | "EXAM";
   answer: string;
   choices: string[];
-  explanation: string;
+  explanation: string | null;
 };
 
 type BulkCreateInput = {

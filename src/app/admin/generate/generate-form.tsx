@@ -170,6 +170,8 @@ export function GenerateForm({ topics }: { topics: Topic[] }) {
       if (q.quizType === "MULTIPLE_CHOICE") {
         const filledChoices = q.choices.filter((c) => c.trim());
         if (filledChoices.length < 2) return false;
+        // 正解が選択肢に含まれているか確認
+        if (!filledChoices.includes(q.answer)) return false;
       }
       return true;
     });
@@ -191,7 +193,7 @@ export function GenerateForm({ topics }: { topics: Topic[] }) {
           choices: q.quizType === "MULTIPLE_CHOICE"
             ? q.choices.filter((c) => c.trim())
             : [],
-          explanation: q.explanation,
+          explanation: q.explanation.trim() || null,
         })),
       });
 
