@@ -21,6 +21,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   progress      UserProgress[]
+  mockExams     MockExam[]
 
   @@map("users")
 }
@@ -147,4 +148,53 @@ enum ProgressStatus {
   NOT_STARTED
   IN_PROGRESS
   COMPLETED
+}
+
+// 模擬試験モデル
+model MockExam {
+  id              String          @id @default(cuid())
+  userId          String          @map("user_id")
+  title           String?         // 試験名（オプション）
+  subjectIds      String[]        @map("subject_ids") // 選択した科目のID
+  questionCount   Int             @map("question_count")
+  timeLimit       Int             @map("time_limit") // 制限時間（分）
+  status          MockExamStatus  @default(IN_PROGRESS)
+  startedAt       DateTime        @default(now()) @map("started_at")
+  pausedAt        DateTime?       @map("paused_at")
+  pausedDuration  Int             @default(0) @map("paused_duration") // 一時停止合計時間（秒）
+  completedAt     DateTime?       @map("completed_at")
+  score           Int?            // 正解数
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  answers         MockExamAnswer[]
+
+  @@index([userId])
+  @@index([userId, status])
+  @@map("mock_exams")
+}
+
+model MockExamAnswer {
+  id          String    @id @default(cuid())
+  mockExamId  String    @map("mock_exam_id")
+  quizId      String    @map("quiz_id")
+  userAnswer  String?   @map("user_answer") // null = 未回答
+  isCorrect   Boolean?  @map("is_correct")
+  isMarked    Boolean   @default(false) @map("is_marked") // 後で見直すマーク
+  timeSpent   Int       @default(0) @map("time_spent") // 回答にかかった時間（秒）
+  order       Int       // 出題順序
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  mockExam    MockExam  @relation(fields: [mockExamId], references: [id], onDelete: Cascade)
+
+  @@unique([mockExamId, quizId])
+  @@index([mockExamId])
+  @@map("mock_exam_answers")
+}
+
+enum MockExamStatus {
+  IN_PROGRESS  // 実行中
+  PAUSED       // 一時停止中
+  COMPLETED    // 完了
+  ABANDONED    // 放棄
 }
