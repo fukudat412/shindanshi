@@ -25,13 +25,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           where: { email },
         });
 
-        if (!user || !user.password) {
-          return null;
-        }
+        // タイミング攻撃対策: ユーザーが存在しない場合もbcryptを実行
+        const dummyHash = "$2a$10$dummyhashtopreventtimingattacks";
+        const passwordToCompare = user?.password ?? dummyHash;
+        const isValid = await bcrypt.compare(password, passwordToCompare);
 
-        const isValid = await bcrypt.compare(password, user.password);
-
-        if (!isValid) {
+        if (!user || !user.password || !isValid) {
           return null;
         }
 

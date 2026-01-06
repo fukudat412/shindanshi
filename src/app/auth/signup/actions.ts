@@ -11,6 +11,19 @@ type SignUpInput = {
 
 export async function signUp(input: SignUpInput) {
   try {
+    // バリデーション
+    if (!input.email || !input.email.includes("@")) {
+      return { success: false, error: "有効なメールアドレスを入力してください" };
+    }
+
+    if (!input.password || input.password.length < 8) {
+      return { success: false, error: "パスワードは8文字以上にしてください" };
+    }
+
+    if (!input.name || input.name.trim().length === 0) {
+      return { success: false, error: "お名前を入力してください" };
+    }
+
     const existingUser = await prisma.user.findUnique({
       where: { email: input.email },
     });
