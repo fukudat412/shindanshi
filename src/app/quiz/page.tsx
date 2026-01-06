@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
 import { QuizClient } from "./quiz-client";
 
 export const dynamic = "force-dynamic";
@@ -37,6 +38,21 @@ export default async function QuizPage({
   }
 
   const quizzes = await getQuizzes(articleId, quizId);
+
+  // ブックマーク状態を取得
+  const session = await auth();
+  let bookmarkedQuizIds: string[] = [];
+  if (session?.user?.id && quizzes.length > 0) {
+    const bookmarks = await prisma.bookmark.findMany({
+      where: {
+        userId: session.user.id,
+        targetType: "QUIZ",
+        targetId: { in: quizzes.map((q) => q.id) },
+      },
+      select: { targetId: true },
+    });
+    bookmarkedQuizIds = bookmarks.map((b) => b.targetId);
+  }
 
   if (quizzes.length === 0) {
     return (
@@ -79,6 +95,7 @@ export default async function QuizPage({
           explanation: q.explanation,
         }))}
         articleId={article.id}
+        bookmarkedQuizIds={bookmarkedQuizIds}
       />
     </div>
   );

@@ -23,6 +23,7 @@ model User {
   progress      UserProgress[]
   mockExams     MockExam[]
   examAttempts  ExamAttempt[]
+  bookmarks     Bookmark[]
 
   @@map("users")
 }
@@ -73,13 +74,31 @@ model Subject {
   updatedAt DateTime  @updatedAt
   articles  Article[]
   exams     Exam[]
+  topics    Topic[]
 
   @@map("subjects")
+}
+
+// 論点（Topic）モデル - 問題を論点単位で管理する
+model Topic {
+  id          String    @id @default(cuid())
+  name        String
+  description String?   @db.Text
+  subjectId   String    @map("subject_id")
+  order       Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  subject     Subject   @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  articles    Article[]
+  quizzes     Quiz[]
+
+  @@map("topics")
 }
 
 model Article {
   id        String   @id @default(cuid())
   subjectId String   @map("subject_id")
+  topicId   String?  @map("topic_id")
   title     String
   bodyMd    String   @map("body_md") @db.Text
   tags      String[] @default([])
@@ -87,6 +106,7 @@ model Article {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  topic     Topic?   @relation(fields: [topicId], references: [id], onDelete: SetNull)
   quizzes   Quiz[]
 
   @@map("articles")
@@ -95,8 +115,10 @@ model Article {
 model Quiz {
   id            String         @id @default(cuid())
   articleId     String         @map("article_id")
+  topicId       String?        @map("topic_id")
   question      String         @db.Text
   quizType      QuizType       @default(TRUE_FALSE) @map("quiz_type")
+  phase         QuizPhase      @default(UNDERSTAND)
   answer        String
   choices       String[]       @default([])
   explanation   String?        @db.Text
@@ -104,6 +126,7 @@ model Quiz {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   article       Article        @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  topic         Topic?         @relation(fields: [topicId], references: [id], onDelete: SetNull)
   examQuestions ExamQuestion[]
   examAnswers   ExamAnswer[]
 
@@ -115,6 +138,14 @@ enum QuizType {
   SHORT_TEXT
   NUMBER
   MULTIPLE_CHOICE
+}
+
+// 学習フェーズ（問題の難易度・目的による分類）
+enum QuizPhase {
+  INTRO      // 導入：定義確認など基礎的な問題
+  UNDERSTAND // 理解：判断基準、手順など
+  RETAIN     // 定着：ひっかけ問題、逆方向の問題
+  EXAM       // 試験対策：ミニケース、実践的な問題
 }
 
 model UserProgress {
@@ -152,6 +183,21 @@ enum ProgressStatus {
   NOT_STARTED
   IN_PROGRESS
   COMPLETED
+}
+
+// ブックマーク機能
+model Bookmark {
+  id         String     @id @default(cuid())
+  userId     String     @map("user_id")
+  targetType TargetType @map("target_type")
+  targetId   String     @map("target_id")
+  createdAt  DateTime   @default(now()) @map("created_at")
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, targetType, targetId])
+  @@index([userId])
+  @@index([targetType, targetId])
+  @@map("bookmarks")
 }
 
 // 過去問演習モード用モデル

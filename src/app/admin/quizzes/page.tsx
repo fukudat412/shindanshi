@@ -5,13 +5,19 @@ import { Button } from "@/components/ui/button";
 import { prisma } from "@/lib/prisma";
 import { QuizForm } from "./quiz-form";
 import { DeleteQuizButton } from "./delete-button";
-import { ChevronLeft, HelpCircle, Plus, FileText, X } from "lucide-react";
+import { ChevronLeft, HelpCircle, Plus, FileText, X, Wand2 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 async function getArticles() {
   return prisma.article.findMany({
-    include: { subject: true },
+    include: { subject: { select: { id: true, name: true } } },
+    orderBy: [{ subject: { order: "asc" } }, { order: "asc" }],
+  });
+}
+
+async function getTopics() {
+  return prisma.topic.findMany({
     orderBy: [{ subject: { order: "asc" } }, { order: "asc" }],
   });
 }
@@ -23,6 +29,7 @@ async function getQuizzes(articleId?: string) {
       article: {
         include: { subject: true },
       },
+      topic: true,
     },
     orderBy: [{ article: { order: "asc" } }, { order: "asc" }],
   });
@@ -34,8 +41,9 @@ export default async function AdminQuizzesPage({
   searchParams: Promise<{ articleId?: string }>;
 }) {
   const { articleId } = await searchParams;
-  const [articles, quizzes] = await Promise.all([
+  const [articles, topics, quizzes] = await Promise.all([
     getArticles(),
+    getTopics(),
     getQuizzes(articleId),
   ]);
 
@@ -80,12 +88,20 @@ export default async function AdminQuizzesPage({
       ) : (
         <>
           <Card>
-            <CardHeader className="flex flex-row items-center gap-2">
-              <Plus className="w-5 h-5 text-primary" />
-              <CardTitle>新規クイズを追加</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Plus className="w-5 h-5 text-primary" />
+                <CardTitle>新規クイズを追加</CardTitle>
+              </div>
+              <Link href="/admin/generate">
+                <Button variant="outline" size="sm" className="gap-1">
+                  <Wand2 className="w-4 h-4" />
+                  一括生成
+                </Button>
+              </Link>
             </CardHeader>
             <CardContent>
-              <QuizForm articles={articles} defaultArticleId={articleId} />
+              <QuizForm articles={articles} topics={topics} defaultArticleId={articleId} />
             </CardContent>
           </Card>
 
@@ -123,16 +139,29 @@ export default async function AdminQuizzesPage({
                           <Badge variant="outline" className="text-xs">
                             {quiz.article.subject.name}
                           </Badge>
+                          {quiz.topic && (
+                            <Badge variant="default" className="text-xs bg-orange-500">
+                              {quiz.topic.name}
+                            </Badge>
+                          )}
                           <Badge variant="secondary" className="text-xs">
                             {quiz.article.title}
                           </Badge>
                           <Badge variant={
                             quiz.quizType === "TRUE_FALSE" ? "default" :
+                            quiz.quizType === "MULTIPLE_CHOICE" ? "default" :
                             quiz.quizType === "SHORT_TEXT" ? "secondary" : "outline"
                           } className="text-xs">
-                            {quiz.quizType === "TRUE_FALSE" && "○×問題"}
-                            {quiz.quizType === "SHORT_TEXT" && "短文回答"}
-                            {quiz.quizType === "NUMBER" && "数値回答"}
+                            {quiz.quizType === "TRUE_FALSE" && "○×"}
+                            {quiz.quizType === "SHORT_TEXT" && "短文"}
+                            {quiz.quizType === "NUMBER" && "数値"}
+                            {quiz.quizType === "MULTIPLE_CHOICE" && "4択"}
+                          </Badge>
+                          <Badge variant="outline" className="text-xs">
+                            {quiz.phase === "INTRO" && "導入"}
+                            {quiz.phase === "UNDERSTAND" && "理解"}
+                            {quiz.phase === "RETAIN" && "定着"}
+                            {quiz.phase === "EXAM" && "試験"}
                           </Badge>
                         </div>
                       </div>

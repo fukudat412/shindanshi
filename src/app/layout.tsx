@@ -56,6 +56,7 @@ export default function RootLayout({
                   <NavLink href="/mock-exam" label="模擬試験" />
                   <NavLink href="/weakness" label="弱点分析" />
                   <NavLink href="/stats" label="学習統計" />
+                  <NavLink href="/bookmarks" label="ブックマーク" />
                 </div>
               </div>
 

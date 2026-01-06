@@ -10,27 +10,44 @@ import { createQuiz } from "./actions";
 type Article = {
   id: string;
   title: string;
-  subject: { name: string };
+  subject: { id: string; name: string };
+};
+
+type Topic = {
+  id: string;
+  name: string;
+  subjectId: string;
 };
 
 type QuizType = "TRUE_FALSE" | "SHORT_TEXT" | "NUMBER" | "MULTIPLE_CHOICE";
+type QuizPhase = "INTRO" | "UNDERSTAND" | "RETAIN" | "EXAM";
 
 export function QuizForm({
   articles,
+  topics,
   defaultArticleId,
 }: {
   articles: Article[];
+  topics: Topic[];
   defaultArticleId?: string;
 }) {
   const [articleId, setArticleId] = useState(defaultArticleId || articles[0]?.id || "");
+  const [topicId, setTopicId] = useState("");
   const [question, setQuestion] = useState("");
   const [quizType, setQuizType] = useState<QuizType>("TRUE_FALSE");
+  const [phase, setPhase] = useState<QuizPhase>("UNDERSTAND");
   const [answer, setAnswer] = useState("");
   const [choices, setChoices] = useState<string[]>(["", "", "", ""]);
   const [explanation, setExplanation] = useState("");
   const [order, setOrder] = useState("0");
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState("");
+
+  // 選択された記事の科目IDを取得
+  const selectedArticle = articles.find((a) => a.id === articleId);
+  const selectedSubjectId = selectedArticle?.subject.id;
+  // その科目に属するtopicsをフィルタ
+  const filteredTopics = topics.filter((t) => t.subjectId === selectedSubjectId);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,8 +57,10 @@ export function QuizForm({
         : [];
       const result = await createQuiz({
         articleId,
+        topicId: topicId || null,
         question,
         quizType,
+        phase,
         answer,
         choices: filteredChoices,
         explanation: explanation || null,
@@ -63,19 +82,38 @@ export function QuizForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <div className="space-y-2">
           <Label htmlFor="articleId">記事</Label>
           <select
             id="articleId"
             value={articleId}
-            onChange={(e) => setArticleId(e.target.value)}
+            onChange={(e) => {
+              setArticleId(e.target.value);
+              setTopicId(""); // 記事が変わったらtopicをリセット
+            }}
             className="w-full h-10 px-3 border rounded-md"
             required
           >
             {articles.map((article) => (
               <option key={article.id} value={article.id}>
                 [{article.subject.name}] {article.title}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="topicId">論点（任意）</Label>
+          <select
+            id="topicId"
+            value={topicId}
+            onChange={(e) => setTopicId(e.target.value)}
+            className="w-full h-10 px-3 border rounded-md"
+          >
+            <option value="">選択しない</option>
+            {filteredTopics.map((topic) => (
+              <option key={topic.id} value={topic.id}>
+                {topic.name}
               </option>
             ))}
           </select>
@@ -92,6 +130,20 @@ export function QuizForm({
             <option value="SHORT_TEXT">短文回答</option>
             <option value="NUMBER">数値回答</option>
             <option value="MULTIPLE_CHOICE">選択式問題</option>
+          </select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="phase">学習フェーズ</Label>
+          <select
+            id="phase"
+            value={phase}
+            onChange={(e) => setPhase(e.target.value as QuizPhase)}
+            className="w-full h-10 px-3 border rounded-md"
+          >
+            <option value="INTRO">導入（定義確認）</option>
+            <option value="UNDERSTAND">理解（判断基準）</option>
+            <option value="RETAIN">定着（ひっかけ）</option>
+            <option value="EXAM">試験対策（実践）</option>
           </select>
         </div>
       </div>
