@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createArticle } from "./actions";
+import { TagInput } from "./tag-input";
 
 type Subject = {
   id: string;
@@ -15,14 +16,16 @@ type Subject = {
 export function ArticleForm({
   subjects,
   defaultSubjectId,
+  existingTags = [],
 }: {
   subjects: Subject[];
   defaultSubjectId?: string;
+  existingTags?: string[];
 }) {
   const [subjectId, setSubjectId] = useState(defaultSubjectId || subjects[0]?.id || "");
   const [title, setTitle] = useState("");
   const [bodyMd, setBodyMd] = useState("");
-  const [tags, setTags] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
   const [order, setOrder] = useState("0");
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState("");
@@ -34,13 +37,13 @@ export function ArticleForm({
         subjectId,
         title,
         bodyMd,
-        tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
+        tags,
         order: parseInt(order, 10),
       });
       if (result.success) {
         setTitle("");
         setBodyMd("");
-        setTags("");
+        setTags([]);
         setOrder("0");
         setMessage("記事を作成しました");
         setTimeout(() => setMessage(""), 3000);
@@ -93,12 +96,12 @@ export function ArticleForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="tags">タグ（カンマ区切り）</Label>
-        <Input
-          id="tags"
+        <Label>タグ</Label>
+        <TagInput
           value={tags}
-          onChange={(e) => setTags(e.target.value)}
-          placeholder="例: NPV, 投資判断, ファイナンス"
+          onChange={setTags}
+          existingTags={existingTags}
+          placeholder="タグを入力（Enterで追加）"
         />
       </div>
 
