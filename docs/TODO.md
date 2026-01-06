@@ -54,3 +54,8 @@
 - [x] Quizにphase（intro/understand/retain/exam）を追加
 - [x] 1論点から5問を生成するテンプレ定義（docs/QUESTION_TEMPLATES.md）
 - [x] 管理画面で問題生成を実行可能に（/admin/generate）
+
+### ステップ4: 品質チェック・UX改善
+- [x] lint/typecheck の CI を追加（.github/workflows/ci.yml）
+- [x] docs/CONTENT_POLICY.md を作成
+- [x] 管理画面の入稿UX改善（クイズ一覧の表示改善）
