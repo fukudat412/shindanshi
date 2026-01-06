@@ -8,6 +8,7 @@ type CreateQuizInput = {
   topicId?: string | null;
   question: string;
   quizType: "TRUE_FALSE" | "SHORT_TEXT" | "NUMBER" | "MULTIPLE_CHOICE";
+  phase: "INTRO" | "UNDERSTAND" | "RETAIN" | "EXAM";
   answer: string;
   choices?: string[];
   explanation: string | null;
@@ -22,6 +23,7 @@ export async function createQuiz(input: CreateQuizInput) {
         topicId: input.topicId || null,
         question: input.question,
         quizType: input.quizType,
+        phase: input.phase,
         answer: input.answer,
         choices: input.choices ?? [],
         explanation: input.explanation,

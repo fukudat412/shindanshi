@@ -117,6 +117,7 @@ model Quiz {
   topicId       String?        @map("topic_id")
   question      String         @db.Text
   quizType      QuizType       @default(TRUE_FALSE) @map("quiz_type")
+  phase         QuizPhase      @default(UNDERSTAND)
   answer        String
   choices       String[]       @default([])
   explanation   String?        @db.Text
@@ -136,6 +137,14 @@ enum QuizType {
   SHORT_TEXT
   NUMBER
   MULTIPLE_CHOICE
+}
+
+// 学習フェーズ（問題の難易度・目的による分類）
+enum QuizPhase {
+  INTRO      // 導入：定義確認など基礎的な問題
+  UNDERSTAND // 理解：判断基準、手順など
+  RETAIN     // 定着：ひっかけ問題、逆方向の問題
+  EXAM       // 試験対策：ミニケース、実践的な問題
 }
 
 model UserProgress {

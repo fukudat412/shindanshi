@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
-import { BookOpen, FileText, HelpCircle, Settings, ChevronRight, ClipboardList, Tags } from "lucide-react";
+import { BookOpen, FileText, HelpCircle, Settings, ChevronRight, ClipboardList, Tags, Wand2 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +55,13 @@ export default async function AdminPage() {
       href: "/admin/exams",
       icon: ClipboardList,
       color: "bg-secondary/50 text-secondary-foreground",
+    },
+    {
+      title: "問題生成",
+      description: "テンプレートから作成",
+      href: "/admin/generate",
+      icon: Wand2,
+      color: "bg-purple-100 text-purple-600",
     },
   ];
 
