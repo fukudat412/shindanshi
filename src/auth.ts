@@ -1,21 +1,12 @@
 import NextAuth from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
-import Google from "next-auth/providers/google";
-import GitHub from "next-auth/providers/github";
 import Credentials from "next-auth/providers/credentials";
+import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   providers: [
-    Google({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    }),
-    GitHub({
-      clientId: process.env.GITHUB_CLIENT_ID,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET,
-    }),
     Credentials({
       name: "メールアドレス",
       credentials: {
@@ -27,19 +18,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null;
         }
 
+        const email = credentials.email as string;
+        const password = credentials.password as string;
+
         const user = await prisma.user.findUnique({
-          where: { email: credentials.email as string },
+          where: { email },
         });
 
-        if (!user || !user.password) {
-          return null;
-        }
+        // タイミング攻撃対策: ユーザーが存在しない場合もbcryptを実行
+        const dummyHash = "$2a$10$dummyhashtopreventtimingattacks";
+        const passwordToCompare = user?.password ?? dummyHash;
+        const isValid = await bcrypt.compare(password, passwordToCompare);
 
-        // Note: In production, use bcrypt to compare passwords
-        // const isValid = await bcrypt.compare(credentials.password, user.password);
-        const isValid = credentials.password === user.password;
-
-        if (!isValid) {
+        if (!user || !user.password || !isValid) {
           return null;
         }
 
