@@ -1,18 +1,19 @@
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
-import { BookOpen, FileText, HelpCircle, Settings, ChevronRight } from "lucide-react";
+import { BookOpen, FileText, HelpCircle, Settings, ChevronRight, ClipboardList } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 async function getStats() {
-  const [subjects, articles, quizzes] = await Promise.all([
+  const [subjects, articles, quizzes, exams] = await Promise.all([
     prisma.subject.count(),
     prisma.article.count(),
     prisma.quiz.count(),
+    prisma.exam.count(),
   ]);
 
-  return { subjects, articles, quizzes };
+  return { subjects, articles, quizzes, exams };
 }
 
 export default async function AdminPage() {
@@ -40,6 +41,13 @@ export default async function AdminPage() {
       icon: HelpCircle,
       color: "bg-warning/10 text-warning-foreground",
     },
+    {
+      title: "過去問",
+      description: `${stats.exams} 件登録`,
+      href: "/admin/exams",
+      icon: ClipboardList,
+      color: "bg-secondary/50 text-secondary-foreground",
+    },
   ];
 
   return (
@@ -56,7 +64,7 @@ export default async function AdminPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {adminItems.map((item) => (
           <Link key={item.href} href={item.href}>
             <Card className="group hover:shadow-md hover:border-primary/30 transition-all duration-300 h-full">

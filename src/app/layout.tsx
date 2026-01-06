@@ -51,7 +51,9 @@ export default function RootLayout({
                 {/* デスクトップナビゲーション */}
                 <div className="hidden md:flex items-center gap-1">
                   <NavLink href="/subjects" label="科目一覧" />
+                  <NavLink href="/exams" label="過去問演習" />
                   <NavLink href="/practice" label="ランダム演習" />
+                  <NavLink href="/mock-exam" label="模擬試験" />
                   <NavLink href="/weakness" label="弱点分析" />
                   <NavLink href="/stats" label="学習統計" />
                 </div>

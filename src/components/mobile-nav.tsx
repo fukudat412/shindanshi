@@ -3,12 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, BookOpen, Shuffle, Target, BarChart3, Settings } from "lucide-react";
+import { Menu, X, BookOpen, Shuffle, Target, BarChart3, Settings, ClipboardCheck, ClipboardList } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/subjects", label: "科目一覧", icon: BookOpen },
+  { href: "/exams", label: "過去問演習", icon: ClipboardList },
   { href: "/practice", label: "ランダム演習", icon: Shuffle },
+  { href: "/mock-exam", label: "模擬試験", icon: ClipboardCheck },
   { href: "/weakness", label: "弱点分析", icon: Target },
   { href: "/stats", label: "学習統計", icon: BarChart3 },
   { href: "/admin", label: "管理", icon: Settings },
