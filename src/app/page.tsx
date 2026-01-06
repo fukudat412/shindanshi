@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { prisma } from "@/lib/prisma";
-import { BookOpen, CheckCircle, HelpCircle, RefreshCw, ChevronRight } from "lucide-react";
+import { BookOpen, CheckCircle, HelpCircle, RefreshCw, ChevronRight, TrendingDown, Tags } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -60,7 +60,7 @@ async function getProgress() {
 
   // 復習が必要なクイズ（SM-2アルゴリズムに基づく）
   const now = new Date();
-  const dueQuizzes = await prisma.userProgress.findMany({
+  const dueProgressRecords = await prisma.userProgress.findMany({
     where: {
       userId: DEFAULT_USER_ID,
       targetType: "QUIZ",
@@ -79,6 +79,22 @@ async function getProgress() {
     take: 5,
   });
 
+  // クイズの詳細情報を取得
+  const quizIds = dueProgressRecords.map((p) => p.targetId);
+  const quizDetails = await prisma.quiz.findMany({
+    where: { id: { in: quizIds } },
+    include: {
+      article: { include: { subject: true } },
+      topic: true,
+    },
+  });
+  const quizMap = new Map(quizDetails.map((q) => [q.id, q]));
+
+  const dueQuizzes = dueProgressRecords.map((progress) => ({
+    ...progress,
+    quiz: quizMap.get(progress.targetId),
+  }));
+
   // 全体の復習待ち件数
   const dueCount = await prisma.userProgress.count({
     where: {
@@ -92,11 +108,36 @@ async function getProgress() {
     },
   });
 
-  return { subjectStats, dueQuizzes, dueCount };
+  // topic単位の正答率ランキング（弱点分析）
+  const topicStats = await prisma.$queryRaw<
+    { topicId: string; topicName: string; subjectName: string; totalQuizzes: number; correctQuizzes: number; accuracy: number }[]
+  >`
+    SELECT
+      t.id as "topicId",
+      t.name as "topicName",
+      s.name as "subjectName",
+      COUNT(DISTINCT q.id)::int as "totalQuizzes",
+      COUNT(DISTINCT CASE WHEN up.status = 'COMPLETED' THEN q.id END)::int as "correctQuizzes",
+      CASE
+        WHEN COUNT(DISTINCT q.id) > 0
+        THEN ROUND((COUNT(DISTINCT CASE WHEN up.status = 'COMPLETED' THEN q.id END)::numeric / COUNT(DISTINCT q.id)::numeric) * 100)
+        ELSE 0
+      END as "accuracy"
+    FROM topics t
+    JOIN subjects s ON t.subject_id = s.id
+    JOIN quizzes q ON q.topic_id = t.id
+    LEFT JOIN user_progress up ON up.target_id = q.id AND up.target_type = 'QUIZ' AND up.user_id = ${DEFAULT_USER_ID}
+    GROUP BY t.id, t.name, s.name
+    HAVING COUNT(DISTINCT q.id) > 0
+    ORDER BY "accuracy" ASC, "totalQuizzes" DESC
+    LIMIT 5
+  `;
+
+  return { subjectStats, dueQuizzes, dueCount, topicStats };
 }
 
 export default async function Home() {
-  const { subjectStats, dueQuizzes, dueCount } = await getProgress();
+  const { subjectStats, dueQuizzes, dueCount, topicStats } = await getProgress();
 
   const totalArticles = subjectStats.reduce((acc, s) => acc + s.totalArticles, 0);
   const completedArticles = subjectStats.reduce((acc, s) => acc + s.completedArticles, 0);
@@ -186,7 +227,7 @@ export default async function Home() {
               <RefreshCw className="w-5 h-5" />
             </div>
             <div className="flex-1">
-              <CardTitle className="text-lg">復習が必要なクイズ</CardTitle>
+              <CardTitle className="text-lg">今日の復習 5問</CardTitle>
               <CardDescription>
                 間隔反復アルゴリズムに基づく復習推奨
                 {dueCount > 5 && ` (あと${dueCount - 5}件)`}
@@ -206,12 +247,28 @@ export default async function Home() {
                 <li key={progress.id} className="flex items-center justify-between p-3 rounded-lg bg-background border hover:border-primary/30 transition-colors">
                   <Link
                     href={`/quiz?quizId=${progress.targetId}`}
-                    className="flex items-center gap-2 font-medium text-foreground hover:text-primary transition-colors"
+                    className="flex-1 min-w-0 mr-3"
                   >
-                    <HelpCircle className="w-4 h-4 text-muted-foreground" />
-                    クイズ #{progress.targetId.slice(-6)}
+                    <div className="flex items-center gap-2">
+                      <HelpCircle className="w-4 h-4 text-muted-foreground shrink-0" />
+                      <span className="font-medium text-foreground hover:text-primary transition-colors truncate">
+                        {progress.quiz?.question || `クイズ #${progress.targetId.slice(-6)}`}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1 ml-6">
+                      {progress.quiz?.topic && (
+                        <Badge variant="outline" className="text-xs">
+                          {progress.quiz.topic.name}
+                        </Badge>
+                      )}
+                      {progress.quiz?.article && (
+                        <span className="text-xs text-muted-foreground">
+                          {progress.quiz.article.subject.name}
+                        </span>
+                      )}
+                    </div>
                   </Link>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 shrink-0">
                     {progress.nextReviewAt && (
                       <span className="text-xs text-muted-foreground">
                         {progress.nextReviewAt < new Date() ? "期限切れ" : "今日復習"}
@@ -219,6 +276,64 @@ export default async function Home() {
                     )}
                     <Badge variant={progress.status === "IN_PROGRESS" ? "warning" : "outline"}>
                       {progress.status === "IN_PROGRESS" ? "未習得" : `${progress.score}%`}
+                    </Badge>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
+      {topicStats.length > 0 && (
+        <Card className="border-destructive/20 bg-gradient-to-r from-destructive/5 to-transparent">
+          <CardHeader className="flex flex-row items-center gap-4 space-y-0">
+            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-destructive/10 text-destructive">
+              <TrendingDown className="w-5 h-5" />
+            </div>
+            <div className="flex-1">
+              <CardTitle className="text-lg">弱点論点ランキング</CardTitle>
+              <CardDescription>
+                正答率が低い論点を重点的に復習しましょう
+              </CardDescription>
+            </div>
+            <Link
+              href="/weakness"
+              className="text-sm text-primary hover:text-primary/80 font-medium flex items-center gap-1 transition-colors"
+            >
+              詳細を見る
+              <ChevronRight className="w-4 h-4" />
+            </Link>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-3">
+              {topicStats.map((topic, index) => (
+                <li key={topic.topicId} className="flex items-center justify-between p-3 rounded-lg bg-background border hover:border-primary/30 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${
+                      index === 0 ? "bg-destructive/20 text-destructive" :
+                      index === 1 ? "bg-orange-100 text-orange-600" :
+                      "bg-muted text-muted-foreground"
+                    }`}>
+                      {index + 1}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Tags className="w-4 h-4 text-muted-foreground" />
+                        <span className="font-medium">{topic.topicName}</span>
+                      </div>
+                      <span className="text-xs text-muted-foreground">{topic.subjectName}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-muted-foreground">
+                      {topic.correctQuizzes}/{topic.totalQuizzes} 正解
+                    </span>
+                    <Badge variant={
+                      Number(topic.accuracy) >= 80 ? "success" :
+                      Number(topic.accuracy) >= 50 ? "warning" : "destructive"
+                    }>
+                      {topic.accuracy}%
                     </Badge>
                   </div>
                 </li>
