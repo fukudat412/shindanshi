@@ -20,6 +20,7 @@ type Topic = {
 };
 
 type QuizType = "TRUE_FALSE" | "SHORT_TEXT" | "NUMBER" | "MULTIPLE_CHOICE";
+type QuizPhase = "INTRO" | "UNDERSTAND" | "RETAIN" | "EXAM";
 
 export function QuizForm({
   articles,
@@ -34,6 +35,7 @@ export function QuizForm({
   const [topicId, setTopicId] = useState("");
   const [question, setQuestion] = useState("");
   const [quizType, setQuizType] = useState<QuizType>("TRUE_FALSE");
+  const [phase, setPhase] = useState<QuizPhase>("UNDERSTAND");
   const [answer, setAnswer] = useState("");
   const [choices, setChoices] = useState<string[]>(["", "", "", ""]);
   const [explanation, setExplanation] = useState("");
@@ -58,6 +60,7 @@ export function QuizForm({
         topicId: topicId || null,
         question,
         quizType,
+        phase,
         answer,
         choices: filteredChoices,
         explanation: explanation || null,
@@ -79,7 +82,7 @@ export function QuizForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <div className="space-y-2">
           <Label htmlFor="articleId">記事</Label>
           <select
@@ -127,6 +130,20 @@ export function QuizForm({
             <option value="SHORT_TEXT">短文回答</option>
             <option value="NUMBER">数値回答</option>
             <option value="MULTIPLE_CHOICE">選択式問題</option>
+          </select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="phase">学習フェーズ</Label>
+          <select
+            id="phase"
+            value={phase}
+            onChange={(e) => setPhase(e.target.value as QuizPhase)}
+            className="w-full h-10 px-3 border rounded-md"
+          >
+            <option value="INTRO">導入（定義確認）</option>
+            <option value="UNDERSTAND">理解（判断基準）</option>
+            <option value="RETAIN">定着（ひっかけ）</option>
+            <option value="EXAM">試験対策（実践）</option>
           </select>
         </div>
       </div>

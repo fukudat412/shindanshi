@@ -51,6 +51,6 @@
 - [x] 間違えた問題の次回出題日を自動設定（SM-2アルゴリズム実装済み）
 
 ### ステップ3: 問題生成パイプライン
-- [ ] Quizにphase（intro/understand/retain/exam）を追加
-- [ ] 1論点から5問を生成するテンプレ定義
-- [ ] 管理画面 or CLIで問題生成を実行可能に
+- [x] Quizにphase（intro/understand/retain/exam）を追加
+- [x] 1論点から5問を生成するテンプレ定義（docs/QUESTION_TEMPLATES.md）
+- [x] 管理画面で問題生成を実行可能に（/admin/generate）

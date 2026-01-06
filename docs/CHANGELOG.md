@@ -1,5 +1,32 @@
 # 変更履歴
 
+## 2026-01-07
+
+### 追加: 問題生成パイプライン（ステップ3）
+- **QuizPhase（学習フェーズ）を追加**
+  - `INTRO`: 導入（定義確認、○×/短文）
+  - `UNDERSTAND`: 理解（判断基準、手順）
+  - `RETAIN`: 定着（ひっかけ、逆方向）
+  - `EXAM`: 試験対策（ミニケース、実践）
+- **クイズ作成フォームにフェーズ選択を追加**
+  - 新規クイズ作成時にフェーズを指定可能
+  - 既存クイズはデフォルトで`UNDERSTAND`に設定
+- **問題生成機能を追加**（`/admin/generate`）
+  - 論点を選択すると5つのテンプレート問題を自動生成
+  - フェーズ・タイプの編集が可能
+  - 一括登録機能
+- **問題テンプレートドキュメントを作成**（`docs/QUESTION_TEMPLATES.md`）
+  - 1論点から5〜7問を生成するテンプレート定義
+  - 各フェーズの問題例と解説の書き方
+  - JSON出力形式の仕様
+
+### 技術的な変更
+- prisma/schema.prisma: QuizPhase enum追加、Quizにphaseフィールド追加
+- src/app/admin/generate/: 新規ディレクトリ追加（actions.ts, page.tsx, generate-form.tsx）
+- src/app/admin/quizzes/: QuizFormにphase選択UI追加
+
+---
+
 ## 2026-01-06
 
 ### 追加: 復習キュー機能（ステップ2）
