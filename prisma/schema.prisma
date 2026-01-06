@@ -21,6 +21,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   progress      UserProgress[]
+  examAttempts  ExamAttempt[]
 
   @@map("users")
 }
@@ -70,6 +71,7 @@ model Subject {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   articles  Article[]
+  exams     Exam[]
 
   @@map("subjects")
 }
@@ -90,17 +92,19 @@ model Article {
 }
 
 model Quiz {
-  id          String   @id @default(cuid())
-  articleId   String   @map("article_id")
-  question    String   @db.Text
-  quizType    QuizType @default(TRUE_FALSE) @map("quiz_type")
-  answer      String
-  choices     String[] @default([])
-  explanation String?  @db.Text
-  order       Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  article     Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  id            String         @id @default(cuid())
+  articleId     String         @map("article_id")
+  question      String         @db.Text
+  quizType      QuizType       @default(TRUE_FALSE) @map("quiz_type")
+  answer        String
+  choices       String[]       @default([])
+  explanation   String?        @db.Text
+  order         Int            @default(0)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  article       Article        @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  examQuestions ExamQuestion[]
+  examAnswers   ExamAnswer[]
 
   @@map("quizzes")
 }
@@ -146,5 +150,80 @@ enum TargetType {
 enum ProgressStatus {
   NOT_STARTED
   IN_PROGRESS
+  COMPLETED
+}
+
+// 過去問演習モード用モデル
+model Exam {
+  id           String         @id @default(cuid())
+  year         Int            // 年度
+  session      Int            // 回数（1回目、2回目など）
+  name         String         // 試験名（例：「令和5年度 第1回 中小企業診断士試験」）
+  subjectId    String         @map("subject_id")
+  timeLimit    Int            @map("time_limit") // 制限時間（分）
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  subject      Subject        @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  questions    ExamQuestion[]
+  attempts     ExamAttempt[]
+
+  @@unique([year, session, subjectId])
+  @@map("exams")
+}
+
+model ExamQuestion {
+  id        String   @id @default(cuid())
+  examId    String   @map("exam_id")
+  quizId    String   @map("quiz_id")
+  order     Int      // 問題の順番
+  createdAt DateTime @default(now())
+  exam      Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  quiz      Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@unique([examId, quizId])
+  @@unique([examId, order])
+  @@map("exam_questions")
+}
+
+model ExamAttempt {
+  id            String            @id @default(cuid())
+  userId        String            @map("user_id")
+  examId        String            @map("exam_id")
+  status        ExamAttemptStatus @default(IN_PROGRESS)
+  startedAt     DateTime          @default(now()) @map("started_at")
+  finishedAt    DateTime?         @map("finished_at")
+  remainingTime Int?              @map("remaining_time") // 残り時間（秒）- 中断時に保存
+  score         Int?              // 得点（%）
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exam          Exam              @relation(fields: [examId], references: [id], onDelete: Cascade)
+  answers       ExamAnswer[]
+
+  @@index([userId])
+  @@index([examId])
+  @@map("exam_attempts")
+}
+
+model ExamAnswer {
+  id           String      @id @default(cuid())
+  attemptId    String      @map("attempt_id")
+  quizId       String      @map("quiz_id")
+  userAnswer   String?     @map("user_answer")
+  isCorrect    Boolean?    @map("is_correct")
+  answeredAt   DateTime?   @map("answered_at")
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  attempt      ExamAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  quiz         Quiz        @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, quizId])
+  @@index([quizId])
+  @@map("exam_answers")
+}
+
+enum ExamAttemptStatus {
+  IN_PROGRESS
+  PAUSED
   COMPLETED
 }
