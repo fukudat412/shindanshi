@@ -26,15 +26,24 @@ async function getArticles(subjectId?: string) {
   });
 }
 
+async function getAllTags(): Promise<string[]> {
+  const articles = await prisma.article.findMany({
+    select: { tags: true },
+  });
+  const allTags = [...new Set(articles.flatMap((a: { tags: string[] }) => a.tags))].sort() as string[];
+  return allTags;
+}
+
 export default async function AdminArticlesPage({
   searchParams,
 }: {
   searchParams: Promise<{ subjectId?: string }>;
 }) {
   const { subjectId } = await searchParams;
-  const [subjects, articles] = await Promise.all([
+  const [subjects, articles, existingTags] = await Promise.all([
     getSubjects(),
     getArticles(subjectId),
+    getAllTags(),
   ]);
 
   return (
@@ -83,7 +92,7 @@ export default async function AdminArticlesPage({
               <CardTitle>新規記事を追加</CardTitle>
             </CardHeader>
             <CardContent>
-              <ArticleForm subjects={subjects} defaultSubjectId={subjectId} />
+              <ArticleForm subjects={subjects} defaultSubjectId={subjectId} existingTags={existingTags} />
             </CardContent>
           </Card>
 

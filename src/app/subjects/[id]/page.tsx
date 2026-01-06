@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { prisma } from "@/lib/prisma";
 import { ChevronLeft, FileText, HelpCircle, CheckCircle, Clock, BookOpen } from "lucide-react";
+import { TagFilter } from "./tag-filter";
 
 export const dynamic = "force-dynamic";
 
@@ -46,19 +47,40 @@ async function getSubject(id: string) {
 
 export default async function SubjectPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ tags?: string; mode?: string }>;
 }) {
   const { id } = await params;
+  const { tags: tagsParam, mode: modeParam } = await searchParams;
   const subject = await getSubject(id);
+
+  // タグフィルタ
+  const selectedTags = tagsParam?.split(",").filter(Boolean) || [];
+  const filterMode = modeParam === "and" ? "and" : "or";
 
   if (!subject) {
     notFound();
   }
 
-  const completedCount = subject.articles.filter((a) => a.progress?.status === "COMPLETED").length;
-  const progressPercent = subject.articles.length > 0
-    ? (completedCount / subject.articles.length) * 100
+  // 全タグを収集（重複排除・ソート）
+  const allTags: string[] = [...new Set(subject.articles.flatMap((a) => a.tags))].sort();
+
+  // フィルタ適用
+  const filteredArticles = selectedTags.length > 0
+    ? subject.articles.filter((article) => {
+        if (filterMode === "and") {
+          return selectedTags.every((tag) => article.tags.includes(tag));
+        } else {
+          return selectedTags.some((tag) => article.tags.includes(tag));
+        }
+      })
+    : subject.articles;
+
+  const completedCount = filteredArticles.filter((a) => a.progress?.status === "COMPLETED").length;
+  const progressPercent = filteredArticles.length > 0
+    ? (completedCount / filteredArticles.length) * 100
     : 0;
 
   return (
@@ -86,19 +108,31 @@ export default async function SubjectPage({
       </div>
 
       {/* Progress Overview */}
-      {subject.articles.length > 0 && (
+      {filteredArticles.length > 0 && (
         <Card className="bg-gradient-to-r from-primary/5 to-transparent border-primary/20">
           <CardContent className="py-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium">学習進捗</span>
               <span className="text-sm text-muted-foreground">
-                {completedCount} / {subject.articles.length} 完了
+                {completedCount} / {filteredArticles.length} 完了
+                {selectedTags.length > 0 && (
+                  <span className="text-xs ml-1">（フィルタ中）</span>
+                )}
               </span>
             </div>
             <Progress
               value={progressPercent}
               variant={progressPercent === 100 ? "success" : "default"}
             />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Tag Filter */}
+      {allTags.length > 0 && (
+        <Card>
+          <CardContent className="py-4">
+            <TagFilter allTags={allTags} subjectId={id} />
           </CardContent>
         </Card>
       )}
@@ -113,9 +147,18 @@ export default async function SubjectPage({
             </p>
           </CardContent>
         </Card>
+      ) : filteredArticles.length === 0 ? (
+        <Card className="border-dashed">
+          <CardContent className="py-12 text-center">
+            <FileText className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
+            <p className="text-muted-foreground">
+              選択したタグに一致する記事がありません。
+            </p>
+          </CardContent>
+        </Card>
       ) : (
         <div className="space-y-3">
-          {subject.articles.map((article, index) => (
+          {filteredArticles.map((article, index) => (
             <Link key={article.id} href={`/articles/${article.id}`}>
               <Card className="group hover:shadow-md hover:border-primary/30 transition-all duration-300">
                 <CardHeader className="py-4">
