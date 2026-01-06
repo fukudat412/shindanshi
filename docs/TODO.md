@@ -33,3 +33,24 @@
 - [ ] エラーハンドリング強化
 - [ ] ローディング状態の改善
 - [ ] SEO対策（メタデータ）
+
+---
+
+## カイゼン計画（3ステップ）
+> 参照: docs/claude_kaizen_guide.md
+
+### ステップ1: topics導入（論点管理）
+- [x] Topicモデルを追加（id, name, description, subjectId）
+- [x] Quiz/ArticleにtopicIdリレーションを追加
+- [x] 管理画面にTopic CRUD追加
+- [x] Quiz/Article編集画面にtopic選択を追加
+
+### ステップ2: 復習キュー（少ない問題でも足りる体験）
+- [ ] トップページに「今日の復習5問」を表示
+- [ ] topic単位の正答率ランキングを表示
+- [ ] 間違えた問題の次回出題日を自動設定
+
+### ステップ3: 問題生成パイプライン
+- [ ] Quizにphase（intro/understand/retain/exam）を追加
+- [ ] 1論点から5問を生成するテンプレ定義
+- [ ] 管理画面 or CLIで問題生成を実行可能に

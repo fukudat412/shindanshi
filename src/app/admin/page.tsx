@@ -1,19 +1,20 @@
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
-import { BookOpen, FileText, HelpCircle, Settings, ChevronRight, ClipboardList } from "lucide-react";
+import { BookOpen, FileText, HelpCircle, Settings, ChevronRight, ClipboardList, Tags } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 async function getStats() {
-  const [subjects, articles, quizzes, exams] = await Promise.all([
+  const [subjects, articles, quizzes, exams, topics] = await Promise.all([
     prisma.subject.count(),
     prisma.article.count(),
     prisma.quiz.count(),
     prisma.exam.count(),
+    prisma.topic.count(),
   ]);
 
-  return { subjects, articles, quizzes, exams };
+  return { subjects, articles, quizzes, exams, topics };
 }
 
 export default async function AdminPage() {
@@ -26,6 +27,13 @@ export default async function AdminPage() {
       href: "/admin/subjects",
       icon: BookOpen,
       color: "bg-primary/10 text-primary",
+    },
+    {
+      title: "論点",
+      description: `${stats.topics} 件登録`,
+      href: "/admin/topics",
+      icon: Tags,
+      color: "bg-orange-100 text-orange-600",
     },
     {
       title: "記事",

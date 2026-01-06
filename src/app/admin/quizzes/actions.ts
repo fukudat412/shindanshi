@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 
 type CreateQuizInput = {
   articleId: string;
+  topicId?: string | null;
   question: string;
   quizType: "TRUE_FALSE" | "SHORT_TEXT" | "NUMBER" | "MULTIPLE_CHOICE";
   answer: string;
@@ -18,6 +19,7 @@ export async function createQuiz(input: CreateQuizInput) {
     await prisma.quiz.create({
       data: {
         articleId: input.articleId,
+        topicId: input.topicId || null,
         question: input.question,
         quizType: input.quizType,
         answer: input.answer,

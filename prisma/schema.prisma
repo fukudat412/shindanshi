@@ -73,13 +73,31 @@ model Subject {
   updatedAt DateTime  @updatedAt
   articles  Article[]
   exams     Exam[]
+  topics    Topic[]
 
   @@map("subjects")
+}
+
+// 論点（Topic）モデル - 問題を論点単位で管理する
+model Topic {
+  id          String    @id @default(cuid())
+  name        String
+  description String?   @db.Text
+  subjectId   String    @map("subject_id")
+  order       Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  subject     Subject   @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  articles    Article[]
+  quizzes     Quiz[]
+
+  @@map("topics")
 }
 
 model Article {
   id        String   @id @default(cuid())
   subjectId String   @map("subject_id")
+  topicId   String?  @map("topic_id")
   title     String
   bodyMd    String   @map("body_md") @db.Text
   tags      String[] @default([])
@@ -87,6 +105,7 @@ model Article {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  topic     Topic?   @relation(fields: [topicId], references: [id], onDelete: SetNull)
   quizzes   Quiz[]
 
   @@map("articles")
@@ -95,6 +114,7 @@ model Article {
 model Quiz {
   id            String         @id @default(cuid())
   articleId     String         @map("article_id")
+  topicId       String?        @map("topic_id")
   question      String         @db.Text
   quizType      QuizType       @default(TRUE_FALSE) @map("quiz_type")
   answer        String
@@ -104,6 +124,7 @@ model Quiz {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   article       Article        @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  topic         Topic?         @relation(fields: [topicId], references: [id], onDelete: SetNull)
   examQuestions ExamQuestion[]
   examAnswers   ExamAnswer[]
 

@@ -13,16 +13,25 @@ type Subject = {
   name: string;
 };
 
+type Topic = {
+  id: string;
+  name: string;
+  subjectId: string;
+};
+
 export function ArticleForm({
   subjects,
+  topics,
   defaultSubjectId,
   existingTags = [],
 }: {
   subjects: Subject[];
+  topics: Topic[];
   defaultSubjectId?: string;
   existingTags?: string[];
 }) {
   const [subjectId, setSubjectId] = useState(defaultSubjectId || subjects[0]?.id || "");
+  const [topicId, setTopicId] = useState("");
   const [title, setTitle] = useState("");
   const [bodyMd, setBodyMd] = useState("");
   const [tags, setTags] = useState<string[]>([]);
@@ -30,11 +39,15 @@ export function ArticleForm({
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState("");
 
+  // 選択された科目に属するtopicsをフィルタ
+  const filteredTopics = topics.filter((t) => t.subjectId === subjectId);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     startTransition(async () => {
       const result = await createArticle({
         subjectId,
+        topicId: topicId || null,
         title,
         bodyMd,
         tags,
@@ -55,19 +68,38 @@ export function ArticleForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-3">
         <div className="space-y-2">
           <Label htmlFor="subjectId">科目</Label>
           <select
             id="subjectId"
             value={subjectId}
-            onChange={(e) => setSubjectId(e.target.value)}
+            onChange={(e) => {
+              setSubjectId(e.target.value);
+              setTopicId(""); // 科目が変わったらtopicをリセット
+            }}
             className="w-full h-10 px-3 border rounded-md"
             required
           >
             {subjects.map((subject) => (
               <option key={subject.id} value={subject.id}>
                 {subject.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="topicId">論点（任意）</Label>
+          <select
+            id="topicId"
+            value={topicId}
+            onChange={(e) => setTopicId(e.target.value)}
+            className="w-full h-10 px-3 border rounded-md"
+          >
+            <option value="">選択しない</option>
+            {filteredTopics.map((topic) => (
+              <option key={topic.id} value={topic.id}>
+                {topic.name}
               </option>
             ))}
           </select>
