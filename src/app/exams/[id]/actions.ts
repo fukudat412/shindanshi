@@ -151,8 +151,15 @@ function checkAnswer(
       return normalizedUserAnswer === normalizedCorrectAnswer;
     case "SHORT_TEXT":
       return normalizedUserAnswer === normalizedCorrectAnswer;
-    case "NUMBER":
-      return parseFloat(normalizedUserAnswer) === parseFloat(normalizedCorrectAnswer);
+    case "NUMBER": {
+      const userNum = parseFloat(normalizedUserAnswer);
+      const correctNum = parseFloat(normalizedCorrectAnswer);
+      // NaNチェック
+      if (isNaN(userNum) || isNaN(correctNum)) return false;
+      // 浮動小数点数の精度を考慮した比較
+      const epsilon = 0.0001;
+      return Math.abs(userNum - correctNum) < epsilon;
+    }
     default:
       return normalizedUserAnswer === normalizedCorrectAnswer;
   }

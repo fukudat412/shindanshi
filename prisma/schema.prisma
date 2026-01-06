@@ -218,6 +218,7 @@ model ExamAnswer {
   quiz         Quiz        @relation(fields: [quizId], references: [id], onDelete: Cascade)
 
   @@unique([attemptId, quizId])
+  @@index([quizId])
   @@map("exam_answers")
 }
 

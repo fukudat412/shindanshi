@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -59,13 +59,32 @@ export default function ExamTakeClient({
   const answeredCount = Object.keys(answers).length;
   const progressPercent = (answeredCount / questions.length) * 100;
 
+  // handleFinish用のrefを用意してメモリリークを防ぐ
+  const handleFinishRef = useRef<(() => Promise<void>) | null>(null);
+
+  const handleFinish = async () => {
+    setIsSubmitting(true);
+    try {
+      const result = await finishExam(attemptId);
+      router.push(`/exams/${exam.id}/result?attemptId=${result.id}`);
+    } catch (error) {
+      console.error("採点に失敗しました:", error);
+      setIsSubmitting(false);
+    }
+  };
+
+  // refを最新の関数で更新
+  useEffect(() => {
+    handleFinishRef.current = handleFinish;
+  });
+
   // タイマー
   useEffect(() => {
     const timer = setInterval(() => {
       setRemainingTime((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          handleFinish();
+          handleFinishRef.current?.();
           return 0;
         }
         return prev - 1;
@@ -87,11 +106,27 @@ export default function ExamTakeClient({
 
   const handleAnswerChange = useCallback(
     async (value: string) => {
+      const prevAnswer = answers[currentQuestion.id];
       setAnswers((prev) => ({ ...prev, [currentQuestion.id]: value }));
+
       // サーバーに保存（非同期）
-      await saveAnswer(attemptId, currentQuestion.id, value);
+      try {
+        await saveAnswer(attemptId, currentQuestion.id, value);
+      } catch (error) {
+        console.error("回答の保存に失敗しました:", error);
+        // ロールバック
+        setAnswers((prev) => {
+          const updated = { ...prev };
+          if (prevAnswer !== undefined) {
+            updated[currentQuestion.id] = prevAnswer;
+          } else {
+            delete updated[currentQuestion.id];
+          }
+          return updated;
+        });
+      }
     },
-    [attemptId, currentQuestion.id]
+    [attemptId, currentQuestion.id, answers]
   );
 
   const handlePause = async () => {
@@ -101,17 +136,6 @@ export default function ExamTakeClient({
       router.push("/exams");
     } catch (error) {
       console.error("中断に失敗しました:", error);
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleFinish = async () => {
-    setIsSubmitting(true);
-    try {
-      const result = await finishExam(attemptId);
-      router.push(`/exams/${exam.id}/result?attemptId=${result.id}`);
-    } catch (error) {
-      console.error("採点に失敗しました:", error);
       setIsSubmitting(false);
     }
   };
