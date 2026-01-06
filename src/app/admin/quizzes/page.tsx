@@ -11,7 +11,13 @@ export const dynamic = "force-dynamic";
 
 async function getArticles() {
   return prisma.article.findMany({
-    include: { subject: true },
+    include: { subject: { select: { id: true, name: true } } },
+    orderBy: [{ subject: { order: "asc" } }, { order: "asc" }],
+  });
+}
+
+async function getTopics() {
+  return prisma.topic.findMany({
     orderBy: [{ subject: { order: "asc" } }, { order: "asc" }],
   });
 }
@@ -34,8 +40,9 @@ export default async function AdminQuizzesPage({
   searchParams: Promise<{ articleId?: string }>;
 }) {
   const { articleId } = await searchParams;
-  const [articles, quizzes] = await Promise.all([
+  const [articles, topics, quizzes] = await Promise.all([
     getArticles(),
+    getTopics(),
     getQuizzes(articleId),
   ]);
 
@@ -85,7 +92,7 @@ export default async function AdminQuizzesPage({
               <CardTitle>新規クイズを追加</CardTitle>
             </CardHeader>
             <CardContent>
-              <QuizForm articles={articles} defaultArticleId={articleId} />
+              <QuizForm articles={articles} topics={topics} defaultArticleId={articleId} />
             </CardContent>
           </Card>
 

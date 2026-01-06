@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 
 type CreateArticleInput = {
   subjectId: string;
+  topicId?: string | null;
   title: string;
   bodyMd: string;
   tags: string[];
@@ -14,7 +15,14 @@ type CreateArticleInput = {
 export async function createArticle(input: CreateArticleInput) {
   try {
     await prisma.article.create({
-      data: input,
+      data: {
+        subjectId: input.subjectId,
+        topicId: input.topicId || null,
+        title: input.title,
+        bodyMd: input.bodyMd,
+        tags: input.tags,
+        order: input.order,
+      },
     });
     revalidatePath("/admin/articles");
     revalidatePath(`/subjects/${input.subjectId}`);
