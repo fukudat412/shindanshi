@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { saveQuizResult } from "./actions";
+import { BookmarkButton } from "@/components/bookmark-button";
 import { CheckCircle, XCircle, RefreshCw, FileText, Lightbulb, ChevronRight, Trophy, Target } from "lucide-react";
 
 type Quiz = {
@@ -28,9 +29,11 @@ type QuizResult = {
 export function QuizClient({
   quizzes,
   articleId,
+  bookmarkedQuizIds = [],
 }: {
   quizzes: Quiz[];
   articleId: string;
+  bookmarkedQuizIds?: string[];
 }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [userAnswer, setUserAnswer] = useState("");
@@ -128,6 +131,13 @@ export function QuizClient({
                   <span className="text-sm truncate flex-1">
                     問{index + 1}: {quiz.question.slice(0, 50)}...
                   </span>
+                  <BookmarkButton
+                    targetType="QUIZ"
+                    targetId={quiz.id}
+                    initialBookmarked={bookmarkedQuizIds.includes(quiz.id)}
+                    variant="icon"
+                    className="shrink-0"
+                  />
                 </div>
               );
             })}

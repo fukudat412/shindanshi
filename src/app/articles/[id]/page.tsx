@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { prisma } from "@/lib/prisma";
 import { MarkAsComplete } from "./mark-complete";
+import { BookmarkButton } from "@/components/bookmark-button";
+import { isBookmarked } from "@/lib/bookmark-actions";
 import { ChevronLeft, FileText, HelpCircle, Play, BookOpen } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -32,7 +34,10 @@ export default async function ArticlePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const article = await getArticle(id);
+  const [article, bookmarked] = await Promise.all([
+    getArticle(id),
+    isBookmarked("ARTICLE", id),
+  ]);
 
   if (!article) {
     notFound();
@@ -54,7 +59,15 @@ export default async function ArticlePage({
             <FileText className="w-7 h-7" />
           </div>
           <div className="flex-1">
-            <h1 className="text-3xl font-bold">{article.title}</h1>
+            <div className="flex items-start justify-between gap-4">
+              <h1 className="text-3xl font-bold">{article.title}</h1>
+              <BookmarkButton
+                targetType="ARTICLE"
+                targetId={article.id}
+                initialBookmarked={bookmarked}
+                variant="icon"
+              />
+            </div>
             <div className="flex gap-2 mt-3 flex-wrap">
               {article.tags.map((tag) => (
                 <Badge key={tag} variant="outline">

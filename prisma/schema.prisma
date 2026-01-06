@@ -23,6 +23,7 @@ model User {
   progress      UserProgress[]
   mockExams     MockExam[]
   examAttempts  ExamAttempt[]
+  bookmarks     Bookmark[]
 
   @@map("users")
 }
@@ -182,6 +183,21 @@ enum ProgressStatus {
   NOT_STARTED
   IN_PROGRESS
   COMPLETED
+}
+
+// ブックマーク機能
+model Bookmark {
+  id         String     @id @default(cuid())
+  userId     String     @map("user_id")
+  targetType TargetType @map("target_type")
+  targetId   String     @map("target_id")
+  createdAt  DateTime   @default(now()) @map("created_at")
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, targetType, targetId])
+  @@index([userId])
+  @@index([targetType, targetId])
+  @@map("bookmarks")
 }
 
 // 過去問演習モード用モデル
