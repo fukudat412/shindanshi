@@ -45,16 +45,77 @@ export async function getStreak(userId?: string): Promise<number> {
   const targetUserId = userId ?? session?.user?.id ?? await getOrCreateGuestUser();
   const today = getToday();
 
-  // 過去30日分のアクティビティを取得（大半のストリークはこの範囲内）
-  // 30日を超えるストリークがある場合は追加クエリが必要だが、
-  // パフォーマンスを優先してまず30日で検索
-  const thirtyDaysAgo = new Date(today);
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  // 段階的にデータを取得（大半のストリークは30日以内）
+  // 30日分で足りない場合は全件取得にフォールバック
+  const INITIAL_DAYS = 30;
+  const MAX_STREAK_DAYS = 365;
 
-  const activities = await prisma.dailyActivity.findMany({
+  let activities = await fetchActivities(targetUserId, today, INITIAL_DAYS);
+
+  if (activities.length === 0) {
+    return 0;
+  }
+
+  // 日付のセットを作成
+  let activityDates = new Set(
+    activities.map((a) => a.date.toISOString().split("T")[0])
+  );
+
+  let streak = 0;
+  let needMoreData = false;
+
+  // 今日から過去に向かって連続日数をカウント
+  // 仕様: 今日はまだ学習していなくてもストリークは継続
+  // （例: 昨日まで連続5日学習していれば、今日ページを開いた時点でstreak=5）
+  for (let i = 0; i < INITIAL_DAYS; i++) {
+    const checkDate = new Date(today);
+    checkDate.setDate(checkDate.getDate() - i);
+    const dateStr = checkDate.toISOString().split("T")[0];
+
+    if (activityDates.has(dateStr)) {
+      streak++;
+      // 30日連続かつ最終日もアクティビティあり→追加データが必要かも
+      if (i === INITIAL_DAYS - 1) {
+        needMoreData = true;
+      }
+    } else if (i > 0) {
+      // 今日(i=0)は学習していなくても継続、昨日以前(i>0)で途切れたら終了
+      break;
+    }
+  }
+
+  // 30日連続達成した場合、追加でデータを取得して続きをカウント
+  if (needMoreData) {
+    activities = await fetchActivities(targetUserId, today, MAX_STREAK_DAYS);
+    activityDates = new Set(
+      activities.map((a) => a.date.toISOString().split("T")[0])
+    );
+
+    for (let i = INITIAL_DAYS; i < MAX_STREAK_DAYS; i++) {
+      const checkDate = new Date(today);
+      checkDate.setDate(checkDate.getDate() - i);
+      const dateStr = checkDate.toISOString().split("T")[0];
+
+      if (activityDates.has(dateStr)) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+  }
+
+  return streak;
+}
+
+// アクティビティ取得のヘルパー関数
+async function fetchActivities(userId: string, today: Date, days: number) {
+  const startDate = new Date(today);
+  startDate.setDate(startDate.getDate() - days);
+
+  return prisma.dailyActivity.findMany({
     where: {
-      userId: targetUserId,
-      date: { gte: thirtyDaysAgo },
+      userId,
+      date: { gte: startDate },
     },
     select: {
       date: true,
@@ -63,35 +124,6 @@ export async function getStreak(userId?: string): Promise<number> {
       date: "desc",
     },
   });
-
-  if (activities.length === 0) {
-    return 0;
-  }
-
-  // 日付のセットを作成
-  const activityDates = new Set(
-    activities.map((a) => a.date.toISOString().split("T")[0])
-  );
-
-  let streak = 0;
-
-  // 今日から過去に向かって連続日数をカウント
-  // 仕様: 今日はまだ学習していなくてもストリークは継続
-  // （例: 昨日まで連続5日学習していれば、今日ページを開いた時点でstreak=5）
-  for (let i = 0; i < 30; i++) {
-    const checkDate = new Date(today);
-    checkDate.setDate(checkDate.getDate() - i);
-    const dateStr = checkDate.toISOString().split("T")[0];
-
-    if (activityDates.has(dateStr)) {
-      streak++;
-    } else if (i > 0) {
-      // 今日(i=0)は学習していなくても継続、昨日以前(i>0)で途切れたら終了
-      break;
-    }
-  }
-
-  return streak;
 }
 
 // 今日の学習数を取得
