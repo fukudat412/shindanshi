@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { prisma } from "@/lib/prisma";
+import { getStreakData } from "@/lib/streak-actions";
 import { ActivityChart } from "./components/activity-chart";
 import {
   BarChart3,
@@ -22,38 +23,26 @@ async function getStatistics() {
     where: { userId: DEFAULT_USER_ID, targetType: "QUIZ" },
   });
 
-  // 過去30日のアクティビティを集計
+  // 過去30日のDailyActivityを取得
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-  const recentActivity = allProgress.filter(
-    (p) => p.lastAccessedAt >= thirtyDaysAgo
-  );
-
-  // 日別にグループ化
-  const dailyActivity = new Map<string, number>();
-  recentActivity.forEach((p) => {
-    const date = p.lastAccessedAt.toISOString().split("T")[0];
-    dailyActivity.set(date, (dailyActivity.get(date) ?? 0) + 1);
+  const dailyActivities = await prisma.dailyActivity.findMany({
+    where: {
+      userId: DEFAULT_USER_ID,
+      date: { gte: thirtyDaysAgo },
+    },
+    orderBy: { date: "asc" },
   });
 
-  // 連続学習日数（ストリーク）を計算
-  let streak = 0;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // 日別アクティビティをMap形式に変換
+  const dailyActivity: [string, number][] = dailyActivities.map((a) => [
+    a.date.toISOString().split("T")[0],
+    a.quizCount,
+  ]);
 
-  for (let i = 0; i < 365; i++) {
-    const checkDate = new Date(today);
-    checkDate.setDate(checkDate.getDate() - i);
-    const dateStr = checkDate.toISOString().split("T")[0];
-
-    if (dailyActivity.has(dateStr)) {
-      streak++;
-    } else if (i > 0) {
-      // 今日は学習していなくても、昨日以前で途切れたらストップ
-      break;
-    }
-  }
+  // ストリークは共通ロジックを使用
+  const streakData = await getStreakData(DEFAULT_USER_ID);
 
   // 総回答数と正答率
   const totalAttempts = allProgress.reduce(
@@ -104,8 +93,9 @@ async function getStatistics() {
     .sort((a, b) => a.order - b.order);
 
   return {
-    dailyActivity: Array.from(dailyActivity.entries()).sort(),
-    streak,
+    dailyActivity,
+    streak: streakData.streak,
+    todayCount: streakData.todayCount,
     totalAttempts,
     overallAccuracy,
     totalQuizzes: allProgress.length,
@@ -152,6 +142,9 @@ export default async function StatsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{stats.streak} 日</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              今日 {stats.todayCount} 問回答
+            </p>
           </CardContent>
         </Card>
 
