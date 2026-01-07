@@ -10,6 +10,10 @@ export const dynamic = "force-dynamic";
 
 const DEFAULT_USER_ID = "default-user";
 
+// ストリークマイルストーン
+const STREAK_MILESTONE_WEEK = 7;
+const STREAK_MILESTONE_MONTH = 30;
+
 async function getProgress() {
   const [subjects, articleProgress, quizProgress] = await Promise.all([
     prisma.subject.findMany({
@@ -192,8 +196,8 @@ export default async function Home() {
                 </div>
                 <p className="text-sm text-muted-foreground">
                   今日 {streakData.todayCount} 問回答
-                  {streakData.streak >= 7 && " - 素晴らしい継続力！"}
-                  {streakData.streak >= 30 && " 🎉"}
+                  {streakData.streak >= STREAK_MILESTONE_WEEK && " - 素晴らしい継続力！"}
+                  {streakData.streak >= STREAK_MILESTONE_MONTH && " 🎉"}
                 </p>
               </div>
               <Link

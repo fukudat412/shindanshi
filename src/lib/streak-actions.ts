@@ -2,26 +2,15 @@
 
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { getOrCreateGuestUser } from "@/lib/user-utils";
 
-// デフォルトユーザーIDを取得
-async function getOrCreateGuestUser() {
-  const guestEmail = "guest@shindanshi.local";
-  let user = await prisma.user.findUnique({ where: { email: guestEmail } });
-  if (!user) {
-    user = await prisma.user.create({
-      data: {
-        email: guestEmail,
-        name: "ゲストユーザー",
-      },
-    });
-  }
-  return user.id;
-}
-
-// 今日の日付を取得（時刻を00:00:00に正規化）
+// 今日の日付を取得（JST基準で正規化）
+// サーバーのタイムゾーンに依存しないよう、UTC基準でJST日付を計算
 function getToday(): Date {
   const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const jstOffset = 9 * 60; // JST = UTC+9
+  const jstNow = new Date(now.getTime() + jstOffset * 60 * 1000);
+  return new Date(Date.UTC(jstNow.getUTCFullYear(), jstNow.getUTCMonth(), jstNow.getUTCDate()));
 }
 
 // 日次アクティビティを記録
@@ -49,14 +38,23 @@ export async function recordDailyActivity() {
 }
 
 // ストリーク（連続学習日数）を計算
+// 注: userIdパラメータは内部使用のみ（stats pageから呼び出し用）
+// 外部APIとして公開する場合は権限チェックを追加すること
 export async function getStreak(userId?: string): Promise<number> {
   const session = await auth();
   const targetUserId = userId ?? session?.user?.id ?? await getOrCreateGuestUser();
+  const today = getToday();
 
-  // 過去365日分のアクティビティを取得
+  // 過去30日分のアクティビティを取得（大半のストリークはこの範囲内）
+  // 30日を超えるストリークがある場合は追加クエリが必要だが、
+  // パフォーマンスを優先してまず30日で検索
+  const thirtyDaysAgo = new Date(today);
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
   const activities = await prisma.dailyActivity.findMany({
     where: {
       userId: targetUserId,
+      date: { gte: thirtyDaysAgo },
     },
     select: {
       date: true,
@@ -64,7 +62,6 @@ export async function getStreak(userId?: string): Promise<number> {
     orderBy: {
       date: "desc",
     },
-    take: 365,
   });
 
   if (activities.length === 0) {
@@ -76,11 +73,12 @@ export async function getStreak(userId?: string): Promise<number> {
     activities.map((a) => a.date.toISOString().split("T")[0])
   );
 
-  const today = getToday();
   let streak = 0;
 
   // 今日から過去に向かって連続日数をカウント
-  for (let i = 0; i < 365; i++) {
+  // 仕様: 今日はまだ学習していなくてもストリークは継続
+  // （例: 昨日まで連続5日学習していれば、今日ページを開いた時点でstreak=5）
+  for (let i = 0; i < 30; i++) {
     const checkDate = new Date(today);
     checkDate.setDate(checkDate.getDate() - i);
     const dateStr = checkDate.toISOString().split("T")[0];
@@ -88,7 +86,7 @@ export async function getStreak(userId?: string): Promise<number> {
     if (activityDates.has(dateStr)) {
       streak++;
     } else if (i > 0) {
-      // 今日は学習していなくても、昨日以前で途切れたらストップ
+      // 今日(i=0)は学習していなくても継続、昨日以前(i>0)で途切れたら終了
       break;
     }
   }

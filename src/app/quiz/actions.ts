@@ -5,20 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { calculateSM2 } from "@/lib/spaced-repetition";
 import { recordDailyActivity } from "@/lib/streak-actions";
-
-async function getOrCreateGuestUser() {
-  const guestEmail = "guest@shindanshi.local";
-  let user = await prisma.user.findUnique({ where: { email: guestEmail } });
-  if (!user) {
-    user = await prisma.user.create({
-      data: {
-        email: guestEmail,
-        name: "ゲストユーザー",
-      },
-    });
-  }
-  return user.id;
-}
+import { getOrCreateGuestUser } from "@/lib/user-utils";
 
 export async function saveQuizResult(quizId: string, score: number) {
   const session = await auth();
@@ -76,7 +63,12 @@ export async function saveQuizResult(quizId: string, score: number) {
   });
 
   // 日次アクティビティを記録（ストリーク計算用）
-  await recordDailyActivity();
+  // クイズ進捗は保存済みなので、失敗してもユーザー体験は損なわれない
+  try {
+    await recordDailyActivity();
+  } catch (error) {
+    console.error("Failed to record daily activity:", error);
+  }
 
   revalidatePath("/");
 }
