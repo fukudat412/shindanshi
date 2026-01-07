@@ -23,7 +23,8 @@ model User {
   progress      UserProgress[]
   mockExams     MockExam[]
   examAttempts  ExamAttempt[]
-  bookmarks     Bookmark[]
+  bookmarks        Bookmark[]
+  dailyActivities  DailyActivity[]
 
   @@map("users")
 }
@@ -198,6 +199,21 @@ model Bookmark {
   @@index([userId])
   @@index([targetType, targetId])
   @@map("bookmarks")
+}
+
+// 日次学習アクティビティ（ストリーク計算用）
+model DailyActivity {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  date      DateTime @db.Date
+  quizCount Int      @default(0) @map("quiz_count")
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@index([userId, date])
+  @@map("daily_activities")
 }
 
 // 過去問演習モード用モデル

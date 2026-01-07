@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { calculateSM2 } from "@/lib/spaced-repetition";
+import { recordDailyActivity } from "@/lib/streak-actions";
 
 async function getOrCreateGuestUser() {
   const guestEmail = "guest@shindanshi.local";
@@ -73,6 +74,9 @@ export async function saveQuizResult(quizId: string, score: number) {
       attemptCount: 1,
     },
   });
+
+  // 日次アクティビティを記録（ストリーク計算用）
+  await recordDailyActivity();
 
   revalidatePath("/");
 }
