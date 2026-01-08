@@ -95,6 +95,12 @@ export function ExamClient({
   // 問題ごとの滞在時間を追跡
   const questionStartTimeRef = useRef<number | null>(null);
 
+  // 最新のanswersを参照するためのref
+  const answersRef = useRef(answers);
+  useEffect(() => {
+    answersRef.current = answers;
+  }, [answers]);
+
   // 初期化
   useEffect(() => {
     if (questionStartTimeRef.current === null) {
@@ -113,16 +119,21 @@ export function ExamClient({
   const saveCurrentAnswer = useCallback(async () => {
     const startTime = questionStartTimeRef.current || Date.now();
     const timeSpent = Math.floor((Date.now() - startTime) / 1000);
-    const answer = answers.get(currentQuiz.id);
+    // refを使って最新のanswersを参照
+    const answer = answersRef.current.get(currentQuiz.id);
     if (answer) {
-      await saveExamAnswer(
-        examId,
-        currentQuiz.id,
-        answer.userAnswer,
-        answer.timeSpent + timeSpent
-      );
+      try {
+        await saveExamAnswer(
+          examId,
+          currentQuiz.id,
+          answer.userAnswer,
+          answer.timeSpent + timeSpent
+        );
+      } catch (error) {
+        console.error("回答の保存に失敗しました:", error);
+      }
     }
-  }, [examId, currentQuiz.id, answers]);
+  }, [examId, currentQuiz.id]);
 
   // handleSubmit用のrefを用意してメモリリークを防ぐ
   const handleSubmitRef = useRef<(() => Promise<void>) | null>(null);
