@@ -3,11 +3,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { prisma } from "@/lib/prisma";
-import { BookOpen, CheckCircle, HelpCircle, RefreshCw, ChevronRight, TrendingDown, Tags } from "lucide-react";
+import { getStreakData } from "@/lib/streak-actions";
+import { BookOpen, CheckCircle, HelpCircle, RefreshCw, ChevronRight, TrendingDown, Tags, Flame } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 const DEFAULT_USER_ID = "default-user";
+
+// ストリークマイルストーン
+const STREAK_MILESTONE_WEEK = 7;
+const STREAK_MILESTONE_MONTH = 30;
 
 async function getProgress() {
   const [subjects, articleProgress, quizProgress] = await Promise.all([
@@ -137,7 +142,10 @@ async function getProgress() {
 }
 
 export default async function Home() {
-  const { subjectStats, dueQuizzes, dueCount, topicStats } = await getProgress();
+  const [{ subjectStats, dueQuizzes, dueCount, topicStats }, streakData] = await Promise.all([
+    getProgress(),
+    getStreakData(),
+  ]);
 
   const totalArticles = subjectStats.reduce((acc, s) => acc + s.totalArticles, 0);
   const completedArticles = subjectStats.reduce((acc, s) => acc + s.completedArticles, 0);
@@ -170,6 +178,39 @@ export default async function Home() {
         <div className="absolute -right-20 -top-20 w-64 h-64 rounded-full bg-primary/10 blur-3xl" />
         <div className="absolute -right-10 -bottom-10 w-48 h-48 rounded-full bg-success/10 blur-2xl" />
       </div>
+
+      {/* Streak Card */}
+      {streakData.streak > 0 && (
+        <Card className="bg-gradient-to-r from-warning/10 via-orange-500/5 to-transparent border-warning/30">
+          <CardContent className="py-4">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center justify-center w-14 h-14 rounded-xl bg-warning/20">
+                <Flame className="w-7 h-7 text-warning-foreground" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-bold text-warning-foreground">
+                    {streakData.streak}
+                  </span>
+                  <span className="text-lg font-medium text-muted-foreground">日連続</span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  今日 {streakData.todayCount} 問回答
+                  {streakData.streak >= STREAK_MILESTONE_WEEK && " - 素晴らしい継続力！"}
+                  {streakData.streak >= STREAK_MILESTONE_MONTH && " 🎉"}
+                </p>
+              </div>
+              <Link
+                href="/stats"
+                className="text-sm text-primary hover:text-primary/80 font-medium flex items-center gap-1 transition-colors"
+              >
+                詳細
+                <ChevronRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Progress Cards */}
       <div className="grid gap-4 md:grid-cols-2">
