@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -70,11 +70,35 @@ export function PracticeClient({
   const [results, setResults] = useState<QuizResult[]>([]);
   const [isComplete, setIsComplete] = useState(false);
 
-  const toggleSubject = (id: string) => {
+  const toggleSubject = useCallback((id: string) => {
     setSelectedSubjects((prev) =>
       prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
     );
-  };
+  }, []);
+
+  const handleQuestionCountChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setQuestionCount(
+        Math.max(1, Math.min(50, parseInt(e.target.value) || 10))
+      );
+    },
+    []
+  );
+
+  const handleSetQuestionCount = useCallback((n: number) => {
+    setQuestionCount(n);
+  }, []);
+
+  const handleSetUserAnswer = useCallback((answer: string) => {
+    setUserAnswer(answer);
+  }, []);
+
+  const handleUserAnswerChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setUserAnswer(e.target.value);
+    },
+    []
+  );
 
   const startPractice = () => {
     const params = new URLSearchParams({
@@ -136,11 +160,7 @@ export function PracticeClient({
               <Input
                 type="number"
                 value={questionCount}
-                onChange={(e) =>
-                  setQuestionCount(
-                    Math.max(1, Math.min(50, parseInt(e.target.value) || 10))
-                  )
-                }
+                onChange={handleQuestionCountChange}
                 min={1}
                 max={50}
                 className="w-24"
@@ -153,7 +173,7 @@ export function PracticeClient({
                   key={n}
                   variant={questionCount === n ? "default" : "outline"}
                   size="sm"
-                  onClick={() => setQuestionCount(n)}
+                  onClick={() => handleSetQuestionCount(n)}
                 >
                   {n}問
                 </Button>
@@ -381,14 +401,14 @@ export function PracticeClient({
               <div className="grid grid-cols-2 gap-3">
                 <Button
                   variant={userAnswer === "true" ? "default" : "outline"}
-                  onClick={() => setUserAnswer("true")}
+                  onClick={() => handleSetUserAnswer("true")}
                   className={`h-14 text-base gap-2 ${userAnswer === "true" ? "" : "hover:border-primary/50"}`}
                 >
                   <CheckCircle className="w-5 h-5" />○ 正しい
                 </Button>
                 <Button
                   variant={userAnswer === "false" ? "default" : "outline"}
-                  onClick={() => setUserAnswer("false")}
+                  onClick={() => handleSetUserAnswer("false")}
                   className={`h-14 text-base gap-2 ${userAnswer === "false" ? "" : "hover:border-primary/50"}`}
                 >
                   <XCircle className="w-5 h-5" />× 誤り
@@ -400,7 +420,7 @@ export function PracticeClient({
                   <Button
                     key={index}
                     variant={userAnswer === choice ? "default" : "outline"}
-                    onClick={() => setUserAnswer(choice)}
+                    onClick={() => handleSetUserAnswer(choice)}
                     className={`w-full h-auto min-h-12 text-base justify-start px-4 py-3 text-left whitespace-normal ${
                       userAnswer === choice ? "" : "hover:border-primary/50"
                     }`}
@@ -414,7 +434,7 @@ export function PracticeClient({
               <Input
                 type={currentQuiz.quizType === "NUMBER" ? "number" : "text"}
                 value={userAnswer}
-                onChange={(e) => setUserAnswer(e.target.value)}
+                onChange={handleUserAnswerChange}
                 placeholder={
                   currentQuiz.quizType === "NUMBER"
                     ? "数値を入力してください"
