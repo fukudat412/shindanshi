@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Progress } from "@/components/ui/progress";
@@ -20,13 +20,17 @@ const SPEED_STEP = 0.25;
 // localStorageから速度を読み込む（クライアントサイドのみ）
 function getInitialSpeed(): number {
   if (typeof window === "undefined") return DEFAULT_SPEED;
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if (!saved) return DEFAULT_SPEED;
-  const parsed = parseFloat(saved);
-  if (isNaN(parsed) || parsed < SPEED_MIN || parsed > SPEED_MAX) {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved) return DEFAULT_SPEED;
+    const parsed = parseFloat(saved);
+    if (isNaN(parsed) || parsed < SPEED_MIN || parsed > SPEED_MAX) {
+      return DEFAULT_SPEED;
+    }
+    return parsed;
+  } catch {
     return DEFAULT_SPEED;
   }
-  return parsed;
 }
 
 // Web Speech APIのサポート確認（クライアントサイドのみ）
@@ -47,11 +51,11 @@ function extractPlainText(markdown: string): string {
     .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
     // 画像を除去
     .replace(/!\[([^\]]*)\]\([^)]+\)/g, "")
-    // 太字・斜体のマーカーを除去
-    .replace(/\*\*([^*]+)\*\*/g, "$1")
-    .replace(/\*([^*]+)\*/g, "$1")
-    .replace(/__([^_]+)__/g, "$1")
-    .replace(/_([^_]+)_/g, "$1")
+    // 太字・斜体のマーカーを除去（非貪欲マッチング）
+    .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/\*(.+?)\*/g, "$1")
+    .replace(/__(.+?)__/g, "$1")
+    .replace(/_(.+?)_/g, "$1")
     // 水平線を除去
     .replace(/^[-*_]{3,}$/gm, "")
     // リストマーカーを除去
@@ -69,7 +73,7 @@ function extractPlainText(markdown: string): string {
     .trim();
 }
 
-export function TextToSpeech({ text }: TextToSpeechProps) {
+export function TextToSpeech({ text }: TextToSpeechProps): React.ReactElement | null {
   // クライアントサイドでのみ初期化される状態
   const [isClient, setIsClient] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -101,47 +105,16 @@ export function TextToSpeech({ text }: TextToSpeechProps) {
     };
   }, []);
 
-  // 速度変更時にlocalStorageに保存
+  // 速度変更時にlocalStorageに保存（停止中のみ変更可能）
   const handleSpeedChange = useCallback((value: number[]) => {
     const newSpeed = value[0];
     setSpeed(newSpeed);
-    localStorage.setItem(STORAGE_KEY, newSpeed.toString());
-
-    // 読み上げ中に速度を変更した場合は最初から再開
-    // 注意: Web Speech APIの制限により、途中からの再開はできません
-    if (isPlaying && plainText) {
-      window.speechSynthesis.cancel();
-
-      const utterance = new SpeechSynthesisUtterance(plainText);
-      utterance.lang = "ja-JP";
-      utterance.rate = newSpeed;
-
-      utterance.onend = () => {
-        setIsPlaying(false);
-        setIsPaused(false);
-        setProgress(100);
-      };
-
-      utterance.onerror = (event) => {
-        console.error("Speech synthesis error:", event);
-        setIsPlaying(false);
-        setIsPaused(false);
-        setProgress(0);
-      };
-
-      utterance.onboundary = (event) => {
-        if (event.charIndex !== undefined && plainText.length > 0) {
-          const progressPercent = (event.charIndex / plainText.length) * 100;
-          setProgress(Math.min(progressPercent, 100));
-        }
-      };
-
-      utteranceRef.current = utterance;
-      window.speechSynthesis.speak(utterance);
-      setIsPaused(false);
-      setProgress(0);
+    try {
+      localStorage.setItem(STORAGE_KEY, newSpeed.toString());
+    } catch (error) {
+      console.warn("Failed to save speed setting:", error);
     }
-  }, [isPlaying, plainText]);
+  }, []);
 
   const speak = useCallback(() => {
     if (!checkSpeechSupport() || !plainText) return;
@@ -222,6 +195,7 @@ export function TextToSpeech({ text }: TextToSpeechProps) {
             size="sm"
             onClick={speak}
             className="gap-2"
+            aria-label="記事を読み上げる"
           >
             <Volume2 className="w-4 h-4" />
             読み上げ
@@ -234,6 +208,7 @@ export function TextToSpeech({ text }: TextToSpeechProps) {
                 size="sm"
                 onClick={resume}
                 className="gap-2"
+                aria-label="読み上げを再開する"
               >
                 <Play className="w-4 h-4" />
                 再開
@@ -244,6 +219,7 @@ export function TextToSpeech({ text }: TextToSpeechProps) {
                 size="sm"
                 onClick={pause}
                 className="gap-2"
+                aria-label="読み上げを一時停止する"
               >
                 <Pause className="w-4 h-4" />
                 一時停止
@@ -254,6 +230,7 @@ export function TextToSpeech({ text }: TextToSpeechProps) {
               size="sm"
               onClick={stop}
               className="gap-2"
+              aria-label="読み上げを停止する"
             >
               <Square className="w-4 h-4" />
               停止
@@ -261,16 +238,18 @@ export function TextToSpeech({ text }: TextToSpeechProps) {
           </>
         )}
 
-        {/* 速度調整 */}
+        {/* 速度調整（再生中は無効化） */}
         <div className="flex items-center gap-2 ml-auto">
           <span className="text-sm text-muted-foreground whitespace-nowrap">速度:</span>
           <Slider
             value={[speed]}
             onValueChange={handleSpeedChange}
+            disabled={isPlaying}
             min={SPEED_MIN}
             max={SPEED_MAX}
             step={SPEED_STEP}
             className="w-24"
+            aria-label="読み上げ速度"
           />
           <span className="text-sm font-medium w-10">{speed}x</span>
         </div>
@@ -278,8 +257,8 @@ export function TextToSpeech({ text }: TextToSpeechProps) {
 
       {/* 進捗バー（読み上げ中のみ表示） */}
       {isPlaying && (
-        <div className="flex items-center gap-2">
-          <Progress value={progress} className="flex-1" />
+        <div className="flex items-center gap-2" role="status" aria-live="polite">
+          <Progress value={progress} className="flex-1" aria-label="読み上げ進捗" />
           <span className="text-sm text-muted-foreground w-10 text-right">
             {Math.round(progress)}%
           </span>
