@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { prisma } from "@/lib/prisma";
 import { MarkAsComplete } from "./mark-complete";
+import { TextToSpeech } from "./text-to-speech";
 import { BookmarkButton } from "@/components/bookmark-button";
 import { isBookmarked } from "@/lib/bookmark-actions";
 import { ChevronLeft, FileText, HelpCircle, Play, BookOpen } from "lucide-react";
@@ -81,6 +82,12 @@ export default async function ArticlePage({
 
       {/* Article Content */}
       <Card className="overflow-hidden">
+        <CardHeader className="border-b pb-4">
+          <div className="flex items-center justify-between gap-4">
+            <CardTitle className="text-lg">記事本文</CardTitle>
+          </div>
+          <TextToSpeech text={article.bodyMd} />
+        </CardHeader>
         <CardContent className="prose prose-neutral dark:prose-invert max-w-none py-8 px-6 md:px-8 prose-headings:text-foreground prose-p:text-foreground/90 prose-strong:text-foreground prose-a:text-primary hover:prose-a:text-primary/80 prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-pre:bg-muted prose-pre:border">
           <ReactMarkdown
             remarkPlugins={[remarkGfm, remarkMath]}
