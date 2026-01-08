@@ -106,8 +106,12 @@ export default function ExamTakeClient({
 
   const handleAnswerChange = useCallback(
     async (value: string) => {
-      const prevAnswer = answers[currentQuestion.id];
-      setAnswers((prev) => ({ ...prev, [currentQuestion.id]: value }));
+      // setAnswers内で前の値を取得してロールバック用に保持
+      let prevAnswer: string | undefined;
+      setAnswers((prev) => {
+        prevAnswer = prev[currentQuestion.id];
+        return { ...prev, [currentQuestion.id]: value };
+      });
 
       // サーバーに保存（非同期）
       try {
@@ -126,7 +130,7 @@ export default function ExamTakeClient({
         });
       }
     },
-    [attemptId, currentQuestion.id, answers]
+    [attemptId, currentQuestion.id]
   );
 
   const handlePause = async () => {

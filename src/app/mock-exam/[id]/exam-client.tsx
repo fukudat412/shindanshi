@@ -113,16 +113,22 @@ export function ExamClient({
   const saveCurrentAnswer = useCallback(async () => {
     const startTime = questionStartTimeRef.current || Date.now();
     const timeSpent = Math.floor((Date.now() - startTime) / 1000);
-    const answer = answers.get(currentQuiz.id);
-    if (answer) {
-      await saveExamAnswer(
-        examId,
-        currentQuiz.id,
-        answer.userAnswer,
-        answer.timeSpent + timeSpent
-      );
-    }
-  }, [examId, currentQuiz.id, answers]);
+    // 関数型更新を使わず、現在のステートを直接参照
+    // useCallback内で最新のanswersを取得するためにsetAnswersの関数型更新を利用
+    setAnswers((currentAnswers) => {
+      const answer = currentAnswers.get(currentQuiz.id);
+      if (answer) {
+        // 非同期処理はsetState内から実行（副作用だが回答保存のため許容）
+        saveExamAnswer(
+          examId,
+          currentQuiz.id,
+          answer.userAnswer,
+          answer.timeSpent + timeSpent
+        );
+      }
+      return currentAnswers; // 状態は変更しない
+    });
+  }, [examId, currentQuiz.id]);
 
   // handleSubmit用のrefを用意してメモリリークを防ぐ
   const handleSubmitRef = useRef<(() => Promise<void>) | null>(null);
