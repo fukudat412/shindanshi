@@ -62,6 +62,9 @@ export default function ExamTakeClient({
   // handleFinish用のrefを用意してメモリリークを防ぐ
   const handleFinishRef = useRef<(() => Promise<void>) | null>(null);
 
+  // 保存中の問題IDを追跡して競合状態を防ぐ
+  const savingQuestionRef = useRef<string | null>(null);
+
   const handleFinish = async () => {
     setIsSubmitting(true);
     try {
@@ -106,28 +109,43 @@ export default function ExamTakeClient({
 
   const handleAnswerChange = useCallback(
     async (value: string) => {
+      const questionId = currentQuestion.id;
+
       // setAnswers内で前の値を取得してロールバック用に保持
       let prevAnswer: string | undefined;
       setAnswers((prev) => {
-        prevAnswer = prev[currentQuestion.id];
-        return { ...prev, [currentQuestion.id]: value };
+        prevAnswer = prev[questionId];
+        return { ...prev, [questionId]: value };
       });
 
+      // 同じ問題で保存中の場合、UIは更新済みなので保存のみスキップ
+      // 最新の回答は次の保存で反映される
+      if (savingQuestionRef.current === questionId) {
+        return;
+      }
+
       // サーバーに保存（非同期）
+      savingQuestionRef.current = questionId;
       try {
-        await saveAnswer(attemptId, currentQuestion.id, value);
+        await saveAnswer(attemptId, questionId, value);
       } catch (error) {
         console.error("回答の保存に失敗しました:", error);
-        // ロールバック
-        setAnswers((prev) => {
-          const updated = { ...prev };
-          if (prevAnswer !== undefined) {
-            updated[currentQuestion.id] = prevAnswer;
-          } else {
-            delete updated[currentQuestion.id];
-          }
-          return updated;
-        });
+        // ロールバック（保存中のquestionIdが変わっていなければ）
+        if (savingQuestionRef.current === questionId) {
+          setAnswers((prev) => {
+            const updated = { ...prev };
+            if (prevAnswer !== undefined) {
+              updated[questionId] = prevAnswer;
+            } else {
+              delete updated[questionId];
+            }
+            return updated;
+          });
+        }
+      } finally {
+        if (savingQuestionRef.current === questionId) {
+          savingQuestionRef.current = null;
+        }
       }
     },
     [attemptId, currentQuestion.id]
