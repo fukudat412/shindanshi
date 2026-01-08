@@ -9,14 +9,14 @@ interface TextToSpeechProps {
 }
 
 export function TextToSpeech({ text }: TextToSpeechProps) {
-  const [isSupported, setIsSupported] = useState(false);
+  const [isSupported] = useState(() =>
+    typeof window !== "undefined" && "speechSynthesis" in window
+  );
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   useEffect(() => {
-    setIsSupported(typeof window !== "undefined" && "speechSynthesis" in window);
-
     return () => {
       if (typeof window !== "undefined" && "speechSynthesis" in window) {
         window.speechSynthesis.cancel();
