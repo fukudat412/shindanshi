@@ -55,14 +55,12 @@ npm run db:studio    # Prisma Studio
 
 ## ブランチ戦略
 
-- `main` - 本番環境用（直接コミット禁止）
-- `develop` - 開発用メインブランチ
-- 機能開発は`develop`から分岐し、PRで`develop`にマージ
-- `develop`が安定したら`main`にマージ
+- `main` - 本番環境用（Vercelで自動デプロイ）
+- 機能開発は`main`から`feature/xxx`や`fix/xxx`ブランチを作成
+- PRで`main`に直接マージ
 
 ## 注意事項
 
 - 未使用コードは作成しない（将来用の実装は不要）
 - 新しいUIコンポーネントはshadcn/uiから追加
 - データベース変更後は`npm run db:push`
-- 作業は`develop`ブランチで行う
