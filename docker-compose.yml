@@ -1,0 +1,16 @@
+# ローカル PostgreSQL（旧: Neon）
+# 起動: npm run db:up   停止: docker compose down（データは volume に残る）
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: shindanshi
+      POSTGRES_PASSWORD: shindanshi
+      POSTGRES_DB: shindanshi
+    ports:
+      # この Mac からだけ接続できるようにする（同じネットワークの他の端末には公開しない）
+      - "127.0.0.1:54329:5432"
+    volumes:
+      - shindanshi-db:/var/lib/postgresql/data
+volumes:
+  shindanshi-db:

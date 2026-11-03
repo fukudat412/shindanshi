@@ -42,3 +42,11 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# hootl（無人ループ）
+.hootl/
+hootl.toml
+
+# ローカル専用
+.claude/settings.local.json
+backups/

@@ -16,7 +16,7 @@
 
 - **フレームワーク**: Next.js 16 (App Router)
 - **言語**: TypeScript
-- **データベース**: PostgreSQL (Neon)
+- **データベース**: PostgreSQL（ローカル、docker compose）
 - **ORM**: Prisma
 - **スタイリング**: Tailwind CSS 4
 - **UIコンポーネント**: shadcn/ui + Radix UI

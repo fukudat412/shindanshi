@@ -13,11 +13,12 @@
 - [x] シードデータ
 
 ## セットアップ手順
-1. `.env`にNeonのDATABASE_URLを設定
+1. `cp .env.example .env` して `AUTH_SECRET` を設定
 2. `npm install`
-3. `npx prisma db push` でスキーマ反映
-4. `npm run db:seed` でサンプルデータ投入
-5. `npm run dev` で開発サーバー起動（ポート40000）
+3. `npm run db:up` でローカルPostgreSQLを起動
+4. `npx prisma db push` でスキーマ反映（旧Neonのデータを移す場合は代わりに `npm run db:migrate-from-neon`）
+5. `npm run db:seed` でサンプルデータ投入（移行した場合は不要）
+6. `npm run dev` で開発サーバー起動（ポート40000）
 
 ## 今後の拡張候補
 - [ ] 学習履歴の可視化強化（グラフ表示）
