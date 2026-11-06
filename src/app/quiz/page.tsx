@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { shuffleChoicesForDisplay } from "@/lib/quiz-display";
 import { QuizClient } from "./quiz-client";
 
 export const dynamic = "force-dynamic";
@@ -86,14 +87,16 @@ export default async function QuizPage({
       </div>
 
       <QuizClient
-        quizzes={quizzes.map((q) => ({
-          id: q.id,
-          question: q.question,
-          quizType: q.quizType,
-          answer: q.answer,
-          choices: q.choices,
-          explanation: q.explanation,
-        }))}
+        quizzes={quizzes.map((q) =>
+          shuffleChoicesForDisplay({
+            id: q.id,
+            question: q.question,
+            quizType: q.quizType,
+            answer: q.answer,
+            choices: q.choices,
+            explanation: q.explanation,
+          }),
+        )}
         articleId={article.id}
         bookmarkedQuizIds={bookmarkedQuizIds}
       />
