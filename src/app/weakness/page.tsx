@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { prisma } from "@/lib/prisma";
+import { summarizeBySubject } from "@/lib/progress-stats";
 import {
   AlertTriangle,
   ChevronLeft,
@@ -43,51 +44,10 @@ async function getWeaknessData() {
     },
   });
 
-  // 科目別の統計を計算
-  const subjectStats = new Map<
-    string,
-    {
-      name: string;
-      order: number;
-      correct: number;
-      total: number;
-      weakQuizIds: string[];
-    }
-  >();
-
-  for (const quiz of quizzes) {
-    const progress = quizProgress.find((p) => p.targetId === quiz.id);
-    const subject = quiz.article.subject;
-
-    if (!subjectStats.has(subject.id)) {
-      subjectStats.set(subject.id, {
-        name: subject.name,
-        order: subject.order,
-        correct: 0,
-        total: 0,
-        weakQuizIds: [],
-      });
-    }
-
-    const stats = subjectStats.get(subject.id)!;
-    stats.total++;
-
-    if (progress?.score === 100) {
-      stats.correct++;
-    } else {
-      stats.weakQuizIds.push(quiz.id);
-    }
-  }
-
   // 正答率が低い順にソート
-  const weakSubjects = Array.from(subjectStats.entries())
-    .map(([id, stats]) => ({
-      id,
-      ...stats,
-      accuracy: stats.total > 0 ? (stats.correct / stats.total) * 100 : 0,
-    }))
-    .filter((s) => s.total > 0)
-    .sort((a, b) => a.accuracy - b.accuracy);
+  const weakSubjects = summarizeBySubject(quizProgress, quizzes).sort(
+    (a, b) => a.accuracy - b.accuracy
+  );
 
   return { weakSubjects, hasData: true };
 }
