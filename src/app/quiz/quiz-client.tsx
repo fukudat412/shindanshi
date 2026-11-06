@@ -19,6 +19,7 @@ type Quiz = {
   answer: string;
   choices?: string[];
   explanation: string | null;
+  label?: string;
 };
 
 type QuizResult = {
@@ -33,7 +34,7 @@ export function QuizClient({
   bookmarkedQuizIds = [],
 }: {
   quizzes: Quiz[];
-  articleId: string;
+  articleId?: string;
   bookmarkedQuizIds?: string[];
 }) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -147,10 +148,10 @@ export function QuizClient({
               <RefreshCw className="w-4 h-4" />
               もう一度挑戦
             </Button>
-            <Link href={`/articles/${articleId}`} className="flex-1">
+            <Link href={articleId ? `/articles/${articleId}` : "/"} className="flex-1">
               <Button className="w-full gap-2">
                 <FileText className="w-4 h-4" />
-                記事に戻る
+                {articleId ? "記事に戻る" : "ホームに戻る"}
               </Button>
             </Link>
           </div>
@@ -176,12 +177,15 @@ export function QuizClient({
               問題 {currentIndex + 1} / {quizzes.length}
             </span>
           </div>
+          <div className="flex items-center gap-2">
+          {currentQuiz.label && <Badge variant="warning">{currentQuiz.label}</Badge>}
           <Badge variant="outline">
             {currentQuiz.quizType === "TRUE_FALSE" && "○×問題"}
             {currentQuiz.quizType === "SHORT_TEXT" && "短文回答"}
             {currentQuiz.quizType === "NUMBER" && "数値回答"}
             {currentQuiz.quizType === "MULTIPLE_CHOICE" && "選択式問題"}
           </Badge>
+          </div>
         </div>
         <Progress value={progressPercent} size="sm" />
       </div>

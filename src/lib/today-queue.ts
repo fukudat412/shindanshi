@@ -104,3 +104,13 @@ export function buildTodayQueue({
     ...fresh.map((q) => ({ quizId: q.id, reason: "new" as const })),
   ].slice(0, Math.max(0, limit));
 }
+
+const REASON_LABELS: Record<TodayQueueReason, string> = {
+  due: "期限切れ",
+  weak: "弱点論点",
+  new: "未出題",
+};
+
+export function queueReasonLabel(reason: TodayQueueReason): string {
+  return REASON_LABELS[reason];
+}

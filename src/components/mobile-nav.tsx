@@ -3,10 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, BookOpen, Shuffle, Target, BarChart3, Settings, ClipboardCheck, ClipboardList, Bookmark } from "lucide-react";
+import { Menu, CalendarCheck, X, BookOpen, Shuffle, Target, BarChart3, Settings, ClipboardCheck, ClipboardList, Bookmark } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
+  { href: "/today", label: "今日のキュー", icon: CalendarCheck },
   { href: "/subjects", label: "科目一覧", icon: BookOpen },
   { href: "/exams", label: "過去問演習", icon: ClipboardList },
   { href: "/practice", label: "ランダム演習", icon: Shuffle },
