@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUserId } from "@/lib/user-utils";
 import { summarizeBySubject, summarizeOverall } from "@/lib/progress-stats";
 import { getStreakData } from "@/lib/streak-actions";
 import { ActivityChart } from "./components/activity-chart";
@@ -16,12 +17,11 @@ import {
 
 export const dynamic = "force-dynamic";
 
-const DEFAULT_USER_ID = "default-user";
-
 async function getStatistics() {
+  const userId = await getCurrentUserId();
   // 全ての進捗データを取得
   const allProgress = await prisma.userProgress.findMany({
-    where: { userId: DEFAULT_USER_ID, targetType: "QUIZ" },
+    where: { userId: userId, targetType: "QUIZ" },
   });
 
   // 過去30日のDailyActivityを取得
@@ -30,7 +30,7 @@ async function getStatistics() {
 
   const dailyActivities = await prisma.dailyActivity.findMany({
     where: {
-      userId: DEFAULT_USER_ID,
+      userId: userId,
       date: { gte: thirtyDaysAgo },
     },
     orderBy: { date: "asc" },
@@ -43,7 +43,7 @@ async function getStatistics() {
   ]);
 
   // ストリークは共通ロジックを使用
-  const streakData = await getStreakData(DEFAULT_USER_ID);
+  const streakData = await getStreakData(userId);
 
   // 総回答数と正答率
   const overall = summarizeOverall(allProgress);

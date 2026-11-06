@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUserId } from "@/lib/user-utils";
 import { summarizeBySubject } from "@/lib/progress-stats";
 import {
   AlertTriangle,
@@ -16,13 +17,12 @@ import {
 
 export const dynamic = "force-dynamic";
 
-const DEFAULT_USER_ID = "default-user";
-
 async function getWeaknessData() {
+  const userId = await getCurrentUserId();
   // 全てのクイズ進捗を取得
   const quizProgress = await prisma.userProgress.findMany({
     where: {
-      userId: DEFAULT_USER_ID,
+      userId: userId,
       targetType: "QUIZ",
     },
   });

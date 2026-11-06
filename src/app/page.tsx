@@ -3,18 +3,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUserId } from "@/lib/user-utils";
 import { getStreakData } from "@/lib/streak-actions";
 import { BookOpen, CheckCircle, HelpCircle, RefreshCw, ChevronRight, TrendingDown, Tags, Flame } from "lucide-react";
 
 export const dynamic = "force-dynamic";
-
-const DEFAULT_USER_ID = "default-user";
 
 // ストリークマイルストーン
 const STREAK_MILESTONE_WEEK = 7;
 const STREAK_MILESTONE_MONTH = 30;
 
 async function getProgress() {
+  const userId = await getCurrentUserId();
   const [subjects, articleProgress, quizProgress] = await Promise.all([
     prisma.subject.findMany({
       include: {
@@ -28,13 +28,13 @@ async function getProgress() {
     }),
     prisma.userProgress.findMany({
       where: {
-        userId: DEFAULT_USER_ID,
+        userId: userId,
         targetType: "ARTICLE",
       },
     }),
     prisma.userProgress.findMany({
       where: {
-        userId: DEFAULT_USER_ID,
+        userId: userId,
         targetType: "QUIZ",
       },
     }),
@@ -67,7 +67,7 @@ async function getProgress() {
   const now = new Date();
   const dueProgressRecords = await prisma.userProgress.findMany({
     where: {
-      userId: DEFAULT_USER_ID,
+      userId: userId,
       targetType: "QUIZ",
       OR: [
         // 復習期限が過ぎている
@@ -103,7 +103,7 @@ async function getProgress() {
   // 全体の復習待ち件数
   const dueCount = await prisma.userProgress.count({
     where: {
-      userId: DEFAULT_USER_ID,
+      userId: userId,
       targetType: "QUIZ",
       OR: [
         { nextReviewAt: { lte: now } },
@@ -132,7 +132,7 @@ async function getProgress() {
     FROM topics t
     JOIN subjects s ON t.subject_id = s.id
     JOIN quizzes q ON q.topic_id = t.id
-    LEFT JOIN user_progress up ON up.target_id = q.id AND up.target_type = 'QUIZ' AND up.user_id = ${DEFAULT_USER_ID}
+    LEFT JOIN user_progress up ON up.target_id = q.id AND up.target_type = 'QUIZ' AND up.user_id = ${userId}
     GROUP BY t.id, t.name, s.name
     HAVING COUNT(DISTINCT q.id) > 0
     ORDER BY "accuracy" ASC, "totalQuizzes" DESC

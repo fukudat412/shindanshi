@@ -2,30 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/auth";
+import { getCurrentUserId } from "@/lib/user-utils";
 import { redirect } from "next/navigation";
 import { calculateSM2 } from "@/lib/spaced-repetition";
 import { shuffle } from "@/lib/shuffle";
-
-async function getOrCreateGuestUser() {
-  const guestEmail = "guest@shindanshi.local";
-  let user = await prisma.user.findUnique({ where: { email: guestEmail } });
-  if (!user) {
-    user = await prisma.user.create({
-      data: {
-        email: guestEmail,
-        name: "ゲストユーザー",
-      },
-    });
-  }
-  return user.id;
-}
-
-// 現在のユーザーIDを取得
-async function getCurrentUserId(): Promise<string> {
-  const session = await auth();
-  return session?.user?.id ?? (await getOrCreateGuestUser());
-}
 
 // 試験の所有権と状態を検証
 async function validateExamAccess(
@@ -60,8 +40,7 @@ export async function createMockExam(
   timeLimit: number,
   title?: string
 ) {
-  const session = await auth();
-  const userId = session?.user?.id ?? (await getOrCreateGuestUser());
+  const userId = await getCurrentUserId();
 
   // 選択した科目からランダムにクイズを取得
   const quizzes = await prisma.quiz.findMany({
