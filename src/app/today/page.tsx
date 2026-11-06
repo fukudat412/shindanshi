@@ -3,6 +3,7 @@ import { getCurrentUserId } from "@/lib/user-utils";
 import { buildTodayQueue, queueReasonLabel } from "@/lib/today-queue";
 import { shuffleChoicesForDisplay } from "@/lib/quiz-display";
 import { buildChoiceFeedback } from "@/lib/quiz-explanation";
+import { formatQuizSource } from "@/lib/past-exam";
 import { QuizClient } from "@/app/quiz/quiz-client";
 import { TodayQueueSummary } from "./queue-summary";
 
@@ -45,6 +46,7 @@ export default async function TodayPage() {
         choiceFeedback: buildChoiceFeedback(q, shuffled.choices),
         basis: q.basis,
         basisYear: q.basisYear,
+        sourceLabel: formatQuizSource(q),
         label: queueReasonLabel(item.reason),
       },
     ];

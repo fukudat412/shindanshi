@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { saveQuizResult } from "./actions";
 import { QuizExplanationPanel } from "@/components/quiz-explanation-panel";
+import { QuizSourceBadge } from "@/components/quiz-source-badge";
 import type { ChoiceFeedback } from "@/lib/quiz-explanation";
 import { BookmarkButton } from "@/components/bookmark-button";
 import { CheckCircle, XCircle, RefreshCw, FileText, ChevronRight, Trophy, Target } from "lucide-react";
@@ -24,6 +25,7 @@ type Quiz = {
   choiceFeedback: ChoiceFeedback[];
   basis: string | null;
   basisYear: number | null;
+  sourceLabel: string | null;
   label?: string;
 };
 
@@ -184,6 +186,7 @@ export function QuizClient({
           </div>
           <div className="flex items-center gap-2">
           {currentQuiz.label && <Badge variant="warning">{currentQuiz.label}</Badge>}
+          <QuizSourceBadge label={currentQuiz.sourceLabel} />
           <Badge variant="outline">
             {currentQuiz.quizType === "TRUE_FALSE" && "○×問題"}
             {currentQuiz.quizType === "SHORT_TEXT" && "短文回答"}

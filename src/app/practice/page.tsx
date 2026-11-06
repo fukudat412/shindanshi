@@ -4,6 +4,7 @@ import { getCurrentUserId } from "@/lib/user-utils";
 import { shuffle } from "@/lib/shuffle";
 import { shuffleChoicesForDisplay } from "@/lib/quiz-display";
 import { buildChoiceFeedback } from "@/lib/quiz-explanation";
+import { formatQuizSource } from "@/lib/past-exam";
 import { PracticeClient } from "./practice-client";
 import { ChevronLeft, Shuffle } from "lucide-react";
 
@@ -148,6 +149,7 @@ export default async function PracticePage({
               choiceFeedback: buildChoiceFeedback(q, shuffled.choices),
               basis: q.basis,
               basisYear: q.basisYear,
+              sourceLabel: formatQuizSource(q),
               subjectName: q.article.subject.name,
             };
           }) ?? null
