@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "@/lib/user-utils";
+import { shuffle } from "@/lib/shuffle";
+import { shuffleChoicesForDisplay } from "@/lib/quiz-display";
 import { PracticeClient } from "./practice-client";
 import { ChevronLeft, Shuffle } from "lucide-react";
 
@@ -50,7 +52,7 @@ async function getRandomQuizzes(
       });
 
       // シャッフルして指定数を返す
-      const shuffled = weakQuizzes.sort(() => Math.random() - 0.5);
+      const shuffled = shuffle(weakQuizzes);
       return shuffled.slice(0, count);
     }
   }
@@ -68,7 +70,7 @@ async function getRandomQuizzes(
   });
 
   // シャッフルして指定数を返す
-  const shuffled = quizzes.sort(() => Math.random() - 0.5);
+  const shuffled = shuffle(quizzes);
   return shuffled.slice(0, count);
 }
 
@@ -133,15 +135,17 @@ export default async function PracticePage({
       <PracticeClient
         subjects={subjectsWithQuizCount}
         initialQuizzes={
-          quizzes?.map((q) => ({
-            id: q.id,
-            question: q.question,
-            quizType: q.quizType,
-            answer: q.answer,
-            choices: q.choices,
-            explanation: q.explanation,
-            subjectName: q.article.subject.name,
-          })) ?? null
+          quizzes?.map((q) =>
+            shuffleChoicesForDisplay({
+              id: q.id,
+              question: q.question,
+              quizType: q.quizType,
+              answer: q.answer,
+              choices: q.choices,
+              explanation: q.explanation,
+              subjectName: q.article.subject.name,
+            }),
+          ) ?? null
         }
         mode={params.mode}
         initialSubjectIds={params.subjectIds?.split(",") ?? null}
