@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "@/lib/user-utils";
 import { redirect } from "next/navigation";
 import { calculateSM2 } from "@/lib/spaced-repetition";
+import { servableQuizWhere } from "@/lib/quiz-eligibility";
 import { shuffle } from "@/lib/shuffle";
 
 // 試験の所有権と状態を検証
@@ -46,9 +47,7 @@ export async function createMockExam(
   // 選択した科目からランダムにクイズを取得
   const quizzes = await prisma.quiz.findMany({
     where: {
-      article: {
-        subjectId: { in: subjectIds },
-      },
+      AND: [{ article: { subjectId: { in: subjectIds } } }, servableQuizWhere],
     },
     select: { id: true },
   });

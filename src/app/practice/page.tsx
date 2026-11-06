@@ -4,6 +4,7 @@ import { getCurrentUserId } from "@/lib/user-utils";
 import { shuffle } from "@/lib/shuffle";
 import { shuffleChoicesForDisplay } from "@/lib/quiz-display";
 import { buildChoiceFeedback } from "@/lib/quiz-explanation";
+import { servableQuizWhere } from "@/lib/quiz-eligibility";
 import { formatQuizSource } from "@/lib/past-exam";
 import { PracticeClient } from "./practice-client";
 import { ChevronLeft, Shuffle } from "lucide-react";
@@ -15,7 +16,7 @@ async function getSubjects() {
     include: {
       articles: {
         include: {
-          _count: { select: { quizzes: true } },
+          _count: { select: { quizzes: { where: servableQuizWhere } } },
         },
       },
     },
@@ -45,8 +46,13 @@ async function getRandomQuizzes(
     if (weakQuizIds.length > 0) {
       const weakQuizzes = await prisma.quiz.findMany({
         where: {
-          id: { in: weakQuizIds },
-          article: { subjectId: { in: subjectIds } },
+          AND: [
+            {
+              id: { in: weakQuizIds },
+              article: { subjectId: { in: subjectIds } },
+            },
+            servableQuizWhere,
+          ],
         },
         include: {
           article: { include: { subject: true } },
@@ -62,9 +68,7 @@ async function getRandomQuizzes(
   // 通常モード: 選択された科目からランダムに取得
   const quizzes = await prisma.quiz.findMany({
     where: {
-      article: {
-        subjectId: { in: subjectIds },
-      },
+      AND: [{ article: { subjectId: { in: subjectIds } } }, servableQuizWhere],
     },
     include: {
       article: { include: { subject: true } },

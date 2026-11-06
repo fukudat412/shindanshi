@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { shuffleChoicesForDisplay } from "@/lib/quiz-display";
 import { buildChoiceFeedback } from "@/lib/quiz-explanation";
+import { servableQuizWhere } from "@/lib/quiz-eligibility";
 import { formatQuizSource } from "@/lib/past-exam";
 import { QuizClient } from "./quiz-client";
 
@@ -11,8 +12,8 @@ export const dynamic = "force-dynamic";
 
 async function getQuizzes(articleId?: string, quizId?: string) {
   if (quizId) {
-    const quiz = await prisma.quiz.findUnique({
-      where: { id: quizId },
+    const quiz = await prisma.quiz.findFirst({
+      where: { AND: [{ id: quizId }, servableQuizWhere] },
       include: { article: { include: { subject: true } } },
     });
     return quiz ? [quiz] : [];
@@ -20,7 +21,7 @@ async function getQuizzes(articleId?: string, quizId?: string) {
 
   if (articleId) {
     return prisma.quiz.findMany({
-      where: { articleId },
+      where: { AND: [{ articleId }, servableQuizWhere] },
       include: { article: { include: { subject: true } } },
       orderBy: { order: "asc" },
     });
