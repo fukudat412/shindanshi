@@ -170,3 +170,57 @@ export function parsePastExamImport(text: string): PastExamImportResult {
   });
   return errors.length > 0 ? { ok: false, errors } : { ok: true, items };
 }
+
+export type PastExamImportItemWithSubject = PastExamImportItem & { subjectId: string };
+
+export type ExistingPastExam = {
+  id: string;
+  subjectId: string;
+  examYear: number | null;
+  examQuestionNumber: number | null;
+  examSubQuestionNumber: number | null;
+};
+
+export type PastExamUpsertPlan = {
+  creates: PastExamImportItemWithSubject[];
+  updates: { id: string; item: PastExamImportItemWithSubject }[];
+  duplicateIndexes: number[];
+};
+
+// 照合キー（科目・年度・問番号・設問番号。設問番号なしは null として扱う）
+const upsertKey = (k: {
+  subjectId: string;
+  examYear: number | null;
+  examQuestionNumber: number | null;
+  examSubQuestionNumber: number | null;
+}) => JSON.stringify([k.subjectId, k.examYear, k.examQuestionNumber, k.examSubQuestionNumber ?? null]);
+
+/** 取り込み項目を、既存の問題の更新と新規作成に振り分ける。入力内で同じキーが重複する項目の index は duplicateIndexes に入れ、creates/updates からは除く */
+export function planPastExamUpsert(
+  items: PastExamImportItemWithSubject[],
+  existing: ExistingPastExam[],
+): PastExamUpsertPlan {
+  const existingByKey = new Map<string, string>();
+  for (const e of existing) existingByKey.set(upsertKey(e), e.id);
+
+  const counts = new Map<string, number>();
+  for (const item of items) {
+    const key = upsertKey(item);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+
+  const creates: PastExamImportItemWithSubject[] = [];
+  const updates: { id: string; item: PastExamImportItemWithSubject }[] = [];
+  const duplicateIndexes: number[] = [];
+  items.forEach((item, index) => {
+    const key = upsertKey(item);
+    if ((counts.get(key) ?? 0) > 1) {
+      duplicateIndexes.push(index);
+      return;
+    }
+    const id = existingByKey.get(key);
+    if (id !== undefined) updates.push({ id, item });
+    else creates.push(item);
+  });
+  return { creates, updates, duplicateIndexes };
+}

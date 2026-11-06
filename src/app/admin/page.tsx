@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
-import { BookOpen, FileText, HelpCircle, Settings, ChevronRight, ClipboardList, Tags, Wand2 } from "lucide-react";
+import { BookOpen, FileText, HelpCircle, Settings, ChevronRight, ClipboardList, Tags, Wand2, Upload } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -62,6 +62,13 @@ export default async function AdminPage() {
       href: "/admin/generate",
       icon: Wand2,
       color: "bg-purple-100 text-purple-600",
+    },
+    {
+      title: "過去問取り込み",
+      description: "JSON から一括登録",
+      href: "/admin/import",
+      icon: Upload,
+      color: "bg-sky-100 text-sky-600",
     },
   ];
 
