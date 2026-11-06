@@ -127,6 +127,7 @@ model Quiz {
   basis         String?        @db.Text
   basisYear     Int?           @map("basis_year")
   origin        QuizOrigin     @default(SIMILAR)
+  verificationStatus VerificationStatus @default(DRAFT) @map("verification_status")
   examYear      Int?           @map("exam_year")
   examQuestionNumber    Int?   @map("exam_question_number")
   examSubQuestionNumber Int?   @map("exam_sub_question_number")
@@ -139,6 +140,13 @@ model Quiz {
   examAnswers   ExamAnswer[]
 
   @@map("quizzes")
+}
+
+enum VerificationStatus {
+  DRAFT
+  VERIFIED
+  NEEDS_FIX
+  REJECTED
 }
 
 enum QuizOrigin {
