@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { shuffleChoicesForDisplay } from "@/lib/quiz-display";
+import { buildChoiceFeedback } from "@/lib/quiz-explanation";
 import { QuizClient } from "./quiz-client";
 
 export const dynamic = "force-dynamic";
@@ -87,16 +88,20 @@ export default async function QuizPage({
       </div>
 
       <QuizClient
-        quizzes={quizzes.map((q) =>
-          shuffleChoicesForDisplay({
+        quizzes={quizzes.map((q) => {
+          const shuffled = shuffleChoicesForDisplay(q);
+          return {
             id: q.id,
             question: q.question,
             quizType: q.quizType,
             answer: q.answer,
-            choices: q.choices,
+            choices: shuffled.choices,
             explanation: q.explanation,
-          }),
-        )}
+            choiceFeedback: buildChoiceFeedback(q, shuffled.choices),
+            basis: q.basis,
+            basisYear: q.basisYear,
+          };
+        })}
         articleId={article.id}
         bookmarkedQuizIds={bookmarkedQuizIds}
       />

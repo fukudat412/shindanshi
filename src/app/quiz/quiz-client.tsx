@@ -9,8 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { saveQuizResult } from "./actions";
+import { QuizExplanationPanel } from "@/components/quiz-explanation-panel";
+import type { ChoiceFeedback } from "@/lib/quiz-explanation";
 import { BookmarkButton } from "@/components/bookmark-button";
-import { CheckCircle, XCircle, RefreshCw, FileText, Lightbulb, ChevronRight, Trophy, Target } from "lucide-react";
+import { CheckCircle, XCircle, RefreshCw, FileText, ChevronRight, Trophy, Target } from "lucide-react";
 
 type Quiz = {
   id: string;
@@ -19,6 +21,9 @@ type Quiz = {
   answer: string;
   choices?: string[];
   explanation: string | null;
+  choiceFeedback: ChoiceFeedback[];
+  basis: string | null;
+  basisYear: number | null;
   label?: string;
 };
 
@@ -306,15 +311,12 @@ export function QuizClient({
             </div>
 
             {/* Explanation */}
-            {currentQuiz.explanation && (
-              <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
-                <div className="flex items-center gap-2 font-medium mb-2 text-primary">
-                  <Lightbulb className="w-4 h-4" />
-                  解説
-                </div>
-                <p className="text-sm leading-relaxed">{currentQuiz.explanation}</p>
-              </div>
-            )}
+            <QuizExplanationPanel
+              explanation={currentQuiz.explanation}
+              choiceFeedback={currentQuiz.choiceFeedback}
+              basis={currentQuiz.basis}
+              basisYear={currentQuiz.basisYear}
+            />
 
             <Button onClick={nextQuiz} className="w-full h-12 text-base gap-2">
               {currentIndex < quizzes.length - 1 ? "次の問題へ" : "結果を見る"}
