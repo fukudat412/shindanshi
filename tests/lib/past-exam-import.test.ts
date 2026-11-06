@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parsePastExamImport } from "@/lib/past-exam-import";
+import { parsePastExamImport, planPastExamUpsert } from "@/lib/past-exam-import";
 
 const base = {
   articleId: "a1",
@@ -82,5 +82,56 @@ describe("parsePastExamImport", () => {
     expect(r.ok).toBe(false);
     expect("items" in r).toBe(false);
     if (!r.ok) expect(r.errors.map((e) => e.index)).toEqual([1, 2]);
+  });
+});
+
+describe("planPastExamUpsert", () => {
+  const item = (o: Record<string, unknown> = {}) =>
+    ({
+      ...base,
+      subjectId: "s1",
+      topicId: null,
+      origin: "PAST_EXAM",
+      examSubQuestionNumber: null,
+      choices: [],
+      explanation: null,
+      choiceExplanations: [],
+      basis: null,
+      basisYear: null,
+      ...o,
+    }) as Parameters<typeof planPastExamUpsert>[0][number];
+  const ex = (o: Record<string, unknown> = {}) => ({
+    id: "q1",
+    subjectId: "s1",
+    examYear: 2023,
+    examQuestionNumber: 3,
+    examSubQuestionNumber: null,
+    ...o,
+  });
+
+  it("T-015 AC1 同じキーは updates（既存 id 付き）、なければ creates", () => {
+    const p = planPastExamUpsert([item(), item({ examQuestionNumber: 4 })], [ex()]);
+    expect(p.updates.map((u) => u.id)).toEqual(["q1"]);
+    expect(p.creates).toHaveLength(1);
+    expect(p.creates[0].examQuestionNumber).toBe(4);
+    expect(p.duplicateIndexes).toEqual([]);
+  });
+
+  it("T-015 AC2 科目が違えば別の問題", () => {
+    const p = planPastExamUpsert([item({ subjectId: "s2" })], [ex()]);
+    expect(p.creates).toHaveLength(1);
+    expect(p.updates).toHaveLength(0);
+  });
+
+  it("T-015 AC2 設問番号は null 同士が同じキー、null と 1 は別のキー", () => {
+    expect(planPastExamUpsert([item()], [ex()]).updates).toHaveLength(1);
+    expect(planPastExamUpsert([item({ examSubQuestionNumber: 1 })], [ex()]).creates).toHaveLength(1);
+    expect(planPastExamUpsert([item()], [ex({ examSubQuestionNumber: 1 })]).creates).toHaveLength(1);
+  });
+
+  it("T-015 AC3 入力内で同じキーが複数あると index が duplicateIndexes に入る", () => {
+    const p = planPastExamUpsert([item(), item({ examQuestionNumber: 9 }), item()], []);
+    expect(p.duplicateIndexes).toEqual([0, 2]);
+    expect(p.creates).toHaveLength(1);
   });
 });
