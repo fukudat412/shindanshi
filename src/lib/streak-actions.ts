@@ -3,14 +3,11 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { getOrCreateGuestUser } from "@/lib/user-utils";
+import { countStreak, toJstDay } from "@/lib/streak";
 
 // 今日の日付を取得（JST基準で正規化）
-// サーバーのタイムゾーンに依存しないよう、UTC基準でJST日付を計算
-function getToday(): Date {
-  const now = new Date();
-  const jstOffset = 9 * 60; // JST = UTC+9
-  const jstNow = new Date(now.getTime() + jstOffset * 60 * 1000);
-  return new Date(Date.UTC(jstNow.getUTCFullYear(), jstNow.getUTCMonth(), jstNow.getUTCDate()));
+function getToday(now: Date = new Date()): Date {
+  return toJstDay(now);
 }
 
 // 日次アクティビティを記録
@@ -46,73 +43,32 @@ export async function getStreak(userId?: string): Promise<number> {
   const today = getToday();
 
   // 段階的にデータを取得（大半のストリークは30日以内）
-  // 30日分で足りない場合は全件取得にフォールバック
+  // 30日分で足りない場合は365日分を取り直す
   const INITIAL_DAYS = 30;
   const MAX_STREAK_DAYS = 365;
 
-  let activities = await fetchActivities(targetUserId, today, INITIAL_DAYS);
+  const initial = await fetchActivityKeys(targetUserId, today, INITIAL_DAYS);
+  const streak = countStreak(initial, today, INITIAL_DAYS);
 
-  if (activities.length === 0) {
-    return 0;
+  // 窓の端まで続いていた（今日が未学習なら INITIAL_DAYS - 1 日）場合のみ取り直す
+  if (streak < INITIAL_DAYS - 1) {
+    return streak;
   }
 
-  // 日付のセットを作成
-  let activityDates = new Set(
-    activities.map((a) => a.date.toISOString().split("T")[0])
-  );
-
-  let streak = 0;
-  let needMoreData = false;
-
-  // 今日から過去に向かって連続日数をカウント
-  // 仕様: 今日はまだ学習していなくてもストリークは継続
-  // （例: 昨日まで連続5日学習していれば、今日ページを開いた時点でstreak=5）
-  for (let i = 0; i < INITIAL_DAYS; i++) {
-    const checkDate = new Date(today);
-    checkDate.setDate(checkDate.getDate() - i);
-    const dateStr = checkDate.toISOString().split("T")[0];
-
-    if (activityDates.has(dateStr)) {
-      streak++;
-      // 30日連続かつ最終日もアクティビティあり→追加データが必要かも
-      if (i === INITIAL_DAYS - 1) {
-        needMoreData = true;
-      }
-    } else if (i > 0) {
-      // 今日(i=0)は学習していなくても継続、昨日以前(i>0)で途切れたら終了
-      break;
-    }
-  }
-
-  // 30日連続達成した場合、追加でデータを取得して続きをカウント
-  if (needMoreData) {
-    activities = await fetchActivities(targetUserId, today, MAX_STREAK_DAYS);
-    activityDates = new Set(
-      activities.map((a) => a.date.toISOString().split("T")[0])
-    );
-
-    for (let i = INITIAL_DAYS; i < MAX_STREAK_DAYS; i++) {
-      const checkDate = new Date(today);
-      checkDate.setDate(checkDate.getDate() - i);
-      const dateStr = checkDate.toISOString().split("T")[0];
-
-      if (activityDates.has(dateStr)) {
-        streak++;
-      } else {
-        break;
-      }
-    }
-  }
-
-  return streak;
+  const extended = await fetchActivityKeys(targetUserId, today, MAX_STREAK_DAYS);
+  return countStreak(extended, today, MAX_STREAK_DAYS);
 }
 
-// アクティビティ取得のヘルパー関数
-async function fetchActivities(userId: string, today: Date, days: number) {
+// アクティビティのある日（"YYYY-MM-DD"）の集合を取得するヘルパー関数
+async function fetchActivityKeys(
+  userId: string,
+  today: Date,
+  days: number
+): Promise<Set<string>> {
   const startDate = new Date(today);
-  startDate.setDate(startDate.getDate() - days);
+  startDate.setUTCDate(startDate.getUTCDate() - days);
 
-  return prisma.dailyActivity.findMany({
+  const activities = await prisma.dailyActivity.findMany({
     where: {
       userId,
       date: { gte: startDate },
@@ -120,10 +76,8 @@ async function fetchActivities(userId: string, today: Date, days: number) {
     select: {
       date: true,
     },
-    orderBy: {
-      date: "desc",
-    },
   });
+  return new Set(activities.map((a) => a.date.toISOString().slice(0, 10)));
 }
 
 // 今日の学習数を取得
