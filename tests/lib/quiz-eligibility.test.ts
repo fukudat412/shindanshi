@@ -1,7 +1,12 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { VerificationStatus } from "@/generated/prisma/enums";
-import { isServableQuiz, servableQuizWhere } from "@/lib/quiz-eligibility";
+import {
+  isServableQuiz,
+  parseVerificationStatus,
+  servableQuizWhere,
+  verificationStatusLabel,
+} from "@/lib/quiz-eligibility";
 
 const statuses = ["DRAFT", "VERIFIED", "NEEDS_FIX", "REJECTED"] as const;
 
@@ -34,5 +39,21 @@ describe("quiz-eligibility", () => {
     expect(servableQuizWhere).toEqual({
       OR: [{ verificationStatus: "VERIFIED" }, { origin: "PAST_EXAM" }],
     });
+  });
+});
+
+describe("verification status helpers", () => {
+  it("T-019 AC1 verificationStatusLabel は表示名を返す", () => {
+    expect(verificationStatusLabel("DRAFT")).toBe("下書き");
+    expect(verificationStatusLabel("VERIFIED")).toBe("検証済み");
+    expect(verificationStatusLabel("NEEDS_FIX")).toBe("要修正");
+    expect(verificationStatusLabel("REJECTED")).toBe("却下");
+  });
+
+  it("T-019 AC2 parseVerificationStatus は4値だけ通す", () => {
+    for (const s of statuses) expect(parseVerificationStatus(s)).toBe(s);
+    for (const v of [undefined, "", "verified", "foo"]) {
+      expect(parseVerificationStatus(v)).toBeNull();
+    }
   });
 });

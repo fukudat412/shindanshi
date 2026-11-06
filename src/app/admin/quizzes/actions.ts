@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { validateExplanationFields } from "@/lib/quiz-explanation";
+import { parseVerificationStatus } from "@/lib/quiz-eligibility";
 
 type CreateQuizInput = {
   articleId: string;
@@ -72,5 +73,26 @@ export async function deleteQuiz(id: string) {
   } catch (error) {
     console.error("Failed to delete quiz:", error);
     return { success: false, error: "クイズの削除に失敗しました" };
+  }
+}
+
+export async function updateQuizVerificationStatus(id: string, status: string) {
+  const verificationStatus = parseVerificationStatus(status);
+  if (!verificationStatus) {
+    return { success: false, error: "検証状態が不正です" };
+  }
+  try {
+    await prisma.quiz.update({
+      where: { id },
+      data: { verificationStatus },
+    });
+    revalidatePath("/admin/quizzes");
+    revalidatePath("/quiz");
+    revalidatePath("/practice");
+    revalidatePath("/today");
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to update verification status:", error);
+    return { success: false, error: "検証状態の更新に失敗しました" };
   }
 }

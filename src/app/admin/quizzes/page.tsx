@@ -2,9 +2,16 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import type { VerificationStatus } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 import { QuizForm } from "./quiz-form";
 import { DeleteQuizButton } from "./delete-button";
+import { VerificationStatusButtons } from "./verification-status-buttons";
+import {
+  parseVerificationStatus,
+  verificationStatusLabel,
+  verificationStatuses,
+} from "@/lib/quiz-eligibility";
 import { ChevronLeft, HelpCircle, Plus, FileText, X, Wand2 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -22,9 +29,15 @@ async function getTopics() {
   });
 }
 
-async function getQuizzes(articleId?: string) {
+async function getQuizzes(
+  articleId?: string,
+  verificationStatus?: VerificationStatus | null,
+) {
   return prisma.quiz.findMany({
-    where: articleId ? { articleId } : undefined,
+    where: {
+      ...(articleId ? { articleId } : {}),
+      ...(verificationStatus ? { verificationStatus } : {}),
+    },
     include: {
       article: {
         include: { subject: true },
@@ -38,13 +51,14 @@ async function getQuizzes(articleId?: string) {
 export default async function AdminQuizzesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ articleId?: string }>;
+  searchParams: Promise<{ articleId?: string; status?: string }>;
 }) {
-  const { articleId } = await searchParams;
+  const { articleId, status } = await searchParams;
+  const statusFilter = parseVerificationStatus(status);
   const [articles, topics, quizzes] = await Promise.all([
     getArticles(),
     getTopics(),
-    getQuizzes(articleId),
+    getQuizzes(articleId, statusFilter),
   ]);
 
   return (
@@ -109,7 +123,7 @@ export default async function AdminQuizzesPage({
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>クイズ一覧</CardTitle>
-                {articleId && (
+                {(articleId || statusFilter) && (
                   <Link
                     href="/admin/quizzes"
                     className="inline-flex items-center gap-1 text-sm text-primary hover:text-primary/80 font-medium transition-colors"
@@ -121,6 +135,24 @@ export default async function AdminQuizzesPage({
               </div>
             </CardHeader>
             <CardContent>
+              <div className="flex flex-wrap gap-2 mb-4">
+                {verificationStatuses.map((s) => (
+                  <Link
+                    key={s}
+                    href={{
+                      pathname: "/admin/quizzes",
+                      query: { ...(articleId ? { articleId } : {}), status: s },
+                    }}
+                  >
+                    <Button
+                      variant={statusFilter === s ? "default" : "outline"}
+                      size="sm"
+                    >
+                      {verificationStatusLabel(s)}
+                    </Button>
+                  </Link>
+                ))}
+              </div>
               {quizzes.length === 0 ? (
                 <div className="text-center py-8">
                   <HelpCircle className="w-12 h-12 mx-auto text-muted-foreground/50 mb-3" />
@@ -165,7 +197,16 @@ export default async function AdminQuizzesPage({
                           </Badge>
                         </div>
                       </div>
-                      <DeleteQuizButton id={quiz.id} />
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Badge variant="outline" className="text-xs">
+                          {verificationStatusLabel(quiz.verificationStatus)}
+                        </Badge>
+                        <VerificationStatusButtons
+                          id={quiz.id}
+                          current={quiz.verificationStatus}
+                        />
+                        <DeleteQuizButton id={quiz.id} />
+                      </div>
                     </div>
                   ))}
                 </div>

@@ -13,3 +13,25 @@ export function isServableQuiz(quiz: {
 export const servableQuizWhere: Prisma.QuizWhereInput = {
   OR: [{ verificationStatus: "VERIFIED" }, { origin: "PAST_EXAM" }],
 };
+
+const verificationStatusLabels: Record<VerificationStatus, string> = {
+  DRAFT: "下書き",
+  VERIFIED: "検証済み",
+  NEEDS_FIX: "要修正",
+  REJECTED: "却下",
+};
+
+export function verificationStatusLabel(status: VerificationStatus): string {
+  return verificationStatusLabels[status];
+}
+
+export const verificationStatuses = Object.keys(
+  verificationStatusLabels,
+) as VerificationStatus[];
+
+// 4値のいずれかならその値、それ以外は null
+export function parseVerificationStatus(
+  value: string | undefined,
+): VerificationStatus | null {
+  return verificationStatuses.find((s) => s === value) ?? null;
+}
