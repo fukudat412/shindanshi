@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { shuffleChoicesForDisplay } from "@/lib/quiz-display";
 import { buildChoiceFeedback } from "@/lib/quiz-explanation";
+import { formatQuizSource } from "@/lib/past-exam";
 import { QuizClient } from "./quiz-client";
 
 export const dynamic = "force-dynamic";
@@ -100,6 +101,7 @@ export default async function QuizPage({
             choiceFeedback: buildChoiceFeedback(q, shuffled.choices),
             basis: q.basis,
             basisYear: q.basisYear,
+            sourceLabel: formatQuizSource(q),
           };
         })}
         articleId={article.id}

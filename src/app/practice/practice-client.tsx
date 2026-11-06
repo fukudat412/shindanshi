@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { QuizExplanationPanel } from "@/components/quiz-explanation-panel";
+import { QuizSourceBadge } from "@/components/quiz-source-badge";
 import type { ChoiceFeedback } from "@/lib/quiz-explanation";
 import { saveQuizResult } from "@/app/quiz/actions";
 import {
@@ -40,6 +41,7 @@ type Quiz = {
   choiceFeedback: ChoiceFeedback[];
   basis: string | null;
   basisYear: number | null;
+  sourceLabel: string | null;
   subjectName: string;
 };
 
@@ -369,6 +371,7 @@ export function PracticeClient({
             <Badge variant="secondary" className="text-xs">
               {currentQuiz.subjectName}
             </Badge>
+            <QuizSourceBadge label={currentQuiz.sourceLabel} />
             <Badge variant="outline">
               {currentQuiz.quizType === "TRUE_FALSE" && "○×問題"}
               {currentQuiz.quizType === "SHORT_TEXT" && "短文回答"}
