@@ -37,7 +37,7 @@ npm run db:studio    # Prisma Studio
 ### データモデル
 - **Subject** - 科目（1対多でArticle）
 - **Article** - 記事（1対多でQuiz）
-- **Quiz** - クイズ（TRUE_FALSE, SHORT_TEXT, NUMBER）
+- **Quiz** - クイズ（TRUE_FALSE, SHORT_TEXT, NUMBER, MULTIPLE_CHOICE）。出自（過去問 PAST_EXAM／類題 SIMILAR）と検証状態（既定は DRAFT）を持つ。出題するのは検証済みか過去問だけで、条件は `src/lib/quiz-eligibility.ts` にまとめてある
 - **UserProgress** - 学習進捗（SM-2アルゴリズム用パラメータ含む）
 
 ### 主要パターン
