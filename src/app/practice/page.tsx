@@ -1,24 +1,10 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/auth";
+import { getCurrentUserId } from "@/lib/user-utils";
 import { PracticeClient } from "./practice-client";
 import { ChevronLeft, Shuffle } from "lucide-react";
 
 export const dynamic = "force-dynamic";
-
-async function getOrCreateGuestUser() {
-  const guestEmail = "guest@shindanshi.local";
-  let user = await prisma.user.findUnique({ where: { email: guestEmail } });
-  if (!user) {
-    user = await prisma.user.create({
-      data: {
-        email: guestEmail,
-        name: "ゲストユーザー",
-      },
-    });
-  }
-  return user.id;
-}
 
 async function getSubjects() {
   return prisma.subject.findMany({
@@ -97,8 +83,7 @@ export default async function PracticePage({
   }>;
 }) {
   const params = await searchParams;
-  const session = await auth();
-  const userId = session?.user?.id ?? await getOrCreateGuestUser();
+  const userId = await getCurrentUserId();
   const subjects = await getSubjects();
 
   // 科目ごとのクイズ数を計算

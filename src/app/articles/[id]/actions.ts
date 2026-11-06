@@ -2,14 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-
-const DEFAULT_USER_ID = "default-user";
+import { getCurrentUserId } from "@/lib/user-utils";
 
 export async function markArticleComplete(articleId: string) {
+  const userId = await getCurrentUserId();
   await prisma.userProgress.upsert({
     where: {
       userId_targetType_targetId: {
-        userId: DEFAULT_USER_ID,
+        userId: userId,
         targetType: "ARTICLE",
         targetId: articleId,
       },
@@ -19,7 +19,7 @@ export async function markArticleComplete(articleId: string) {
       lastAccessedAt: new Date(),
     },
     create: {
-      userId: DEFAULT_USER_ID,
+      userId: userId,
       targetType: "ARTICLE",
       targetId: articleId,
       status: "COMPLETED",

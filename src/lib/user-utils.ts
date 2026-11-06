@@ -1,3 +1,4 @@
+import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
 // ゲストユーザーのメールアドレス
@@ -15,4 +16,10 @@ export async function getOrCreateGuestUser(): Promise<string> {
     });
   }
   return user.id;
+}
+
+// 現在のユーザーID（ログイン中ならそのユーザー、未ログインならゲスト）
+export async function getCurrentUserId(): Promise<string> {
+  const session = await auth();
+  return session?.user?.id ?? (await getOrCreateGuestUser());
 }

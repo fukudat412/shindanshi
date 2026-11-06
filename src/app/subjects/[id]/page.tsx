@@ -4,14 +4,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUserId } from "@/lib/user-utils";
 import { ChevronLeft, FileText, HelpCircle, CheckCircle, Clock, BookOpen } from "lucide-react";
 import { TagFilter } from "./tag-filter";
 
 export const dynamic = "force-dynamic";
 
-const DEFAULT_USER_ID = "default-user";
-
 async function getSubject(id: string) {
+  const userId = await getCurrentUserId();
   const subject = await prisma.subject.findUnique({
     where: { id },
     include: {
@@ -28,7 +28,7 @@ async function getSubject(id: string) {
 
   const progress = await prisma.userProgress.findMany({
     where: {
-      userId: DEFAULT_USER_ID,
+      userId: userId,
       targetType: "ARTICLE",
       targetId: { in: subject.articles.map((a) => a.id) },
     },

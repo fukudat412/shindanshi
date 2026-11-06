@@ -2,14 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/auth";
 import { calculateSM2 } from "@/lib/spaced-repetition";
 import { recordDailyActivity } from "@/lib/streak-actions";
-import { getOrCreateGuestUser } from "@/lib/user-utils";
+import { getCurrentUserId } from "@/lib/user-utils";
 
 export async function saveQuizResult(quizId: string, score: number) {
-  const session = await auth();
-  const userId = session?.user?.id ?? await getOrCreateGuestUser();
+  const userId = await getCurrentUserId();
 
   // 既存の進捗を取得（SM-2計算に必要）
   const existing = await prisma.userProgress.findUnique({
