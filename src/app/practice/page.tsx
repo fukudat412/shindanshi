@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "@/lib/user-utils";
 import { shuffle } from "@/lib/shuffle";
 import { shuffleChoicesForDisplay } from "@/lib/quiz-display";
+import { buildChoiceFeedback } from "@/lib/quiz-explanation";
 import { PracticeClient } from "./practice-client";
 import { ChevronLeft, Shuffle } from "lucide-react";
 
@@ -135,17 +136,21 @@ export default async function PracticePage({
       <PracticeClient
         subjects={subjectsWithQuizCount}
         initialQuizzes={
-          quizzes?.map((q) =>
-            shuffleChoicesForDisplay({
+          quizzes?.map((q) => {
+            const shuffled = shuffleChoicesForDisplay(q);
+            return {
               id: q.id,
               question: q.question,
               quizType: q.quizType,
               answer: q.answer,
-              choices: q.choices,
+              choices: shuffled.choices,
               explanation: q.explanation,
+              choiceFeedback: buildChoiceFeedback(q, shuffled.choices),
+              basis: q.basis,
+              basisYear: q.basisYear,
               subjectName: q.article.subject.name,
-            }),
-          ) ?? null
+            };
+          }) ?? null
         }
         mode={params.mode}
         initialSubjectIds={params.subjectIds?.split(",") ?? null}
