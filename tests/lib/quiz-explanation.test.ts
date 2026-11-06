@@ -1,6 +1,6 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 import type { Quiz } from "@/generated/prisma/client";
-import { buildChoiceFeedback, validateExplanationFields } from "@/lib/quiz-explanation";
+import { buildChoiceFeedback, compactChoices, validateExplanationFields } from "@/lib/quiz-explanation";
 
 const quiz = {
   quizType: "MULTIPLE_CHOICE" as const,
@@ -44,5 +44,21 @@ describe("quiz-explanation", () => {
     expect(validateExplanationFields({ ...ok, basisYear: 1899 })).toHaveLength(1);
     expect(validateExplanationFields({ ...ok, basisYear: 2101 })).toHaveLength(1);
     expect(validateExplanationFields({ ...ok, basisYear: 2024.5 })).toHaveLength(1);
+  });
+});
+
+describe("compactChoices", () => {
+  it("T-011 AC1 空白のみの選択肢を解説ごと取り除き、対応を保つ", () => {
+    expect(compactChoices(["A", "  ", "C", ""], ["a", "x", "c", "y"])).toEqual({
+      choices: ["A", "C"],
+      choiceExplanations: ["a", "c"],
+    });
+  });
+
+  it("T-011 AC2 残った解説がすべて空なら空配列にする", () => {
+    expect(compactChoices(["A", " ", "C"], ["", "x", ""])).toEqual({
+      choices: ["A", "C"],
+      choiceExplanations: [],
+    });
   });
 });

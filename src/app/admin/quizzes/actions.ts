@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { validateExplanationFields } from "@/lib/quiz-explanation";
 
 type CreateQuizInput = {
   articleId: string;
@@ -11,11 +12,23 @@ type CreateQuizInput = {
   phase: "INTRO" | "UNDERSTAND" | "RETAIN" | "EXAM";
   answer: string;
   choices?: string[];
+  choiceExplanations?: string[];
+  basis?: string | null;
+  basisYear?: number | null;
   explanation: string | null;
   order: number;
 };
 
 export async function createQuiz(input: CreateQuizInput) {
+  const errors = validateExplanationFields({
+    quizType: input.quizType,
+    choices: input.choices ?? [],
+    choiceExplanations: input.choiceExplanations ?? [],
+    basisYear: input.basisYear ?? null,
+  });
+  if (errors.length > 0) {
+    return { success: false, error: errors.join("\n") };
+  }
   try {
     await prisma.quiz.create({
       data: {
@@ -26,6 +39,9 @@ export async function createQuiz(input: CreateQuizInput) {
         phase: input.phase,
         answer: input.answer,
         choices: input.choices ?? [],
+        choiceExplanations: input.choiceExplanations ?? [],
+        basis: input.basis || null,
+        basisYear: input.basisYear ?? null,
         explanation: input.explanation,
         order: input.order,
       },
