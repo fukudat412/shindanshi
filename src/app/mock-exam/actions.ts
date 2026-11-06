@@ -1,5 +1,6 @@
 "use server";
 
+import { judgeAnswer } from "@/lib/answer-judge";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "@/lib/user-utils";
@@ -196,15 +197,6 @@ export async function resumeExam(examId: string) {
   }
 }
 
-// 数値比較のヘルパー関数（浮動小数点数の精度を考慮）
-function compareNumbers(userAnswer: string, correctAnswer: string): boolean {
-  const userNum = parseFloat(userAnswer);
-  const correctNum = parseFloat(correctAnswer);
-  if (isNaN(userNum) || isNaN(correctNum)) return false;
-  const epsilon = 0.0001;
-  return Math.abs(userNum - correctNum) < epsilon;
-}
-
 // 試験の提出（完了）
 export async function submitExam(examId: string) {
   try {
@@ -249,20 +241,12 @@ export async function submitExam(examId: string) {
 
     for (const answer of answers) {
       const quiz = quizMap.get(answer.quizId);
-      if (!quiz || !answer.userAnswer) {
+      if (!quiz) {
         answerResults.push({ answerId: answer.id, isCorrect: false, quizId: answer.quizId });
         continue;
       }
 
-      const normalizedUserAnswer = answer.userAnswer.trim().toLowerCase();
-      const normalizedCorrectAnswer = quiz.answer.trim().toLowerCase();
-
-      let isCorrect = false;
-      if (quiz.quizType === "NUMBER") {
-        isCorrect = compareNumbers(normalizedUserAnswer, normalizedCorrectAnswer);
-      } else {
-        isCorrect = normalizedUserAnswer === normalizedCorrectAnswer;
-      }
+      const isCorrect = judgeAnswer(quiz, answer.userAnswer);
 
       if (isCorrect) correctCount++;
       answerResults.push({ answerId: answer.id, isCorrect, quizId: answer.quizId });

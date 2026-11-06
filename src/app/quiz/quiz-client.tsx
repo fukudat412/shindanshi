@@ -1,5 +1,6 @@
 "use client";
 
+import { judgeAnswer } from "@/lib/answer-judge";
 import { useState } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
@@ -47,19 +48,7 @@ export function QuizClient({
   const checkAnswer = async () => {
     if (!currentQuiz) return;
 
-    const normalizedUserAnswer = userAnswer.trim().toLowerCase();
-    const normalizedCorrectAnswer = currentQuiz.answer.trim().toLowerCase();
-
-    let isCorrect = false;
-    if (currentQuiz.quizType === "TRUE_FALSE") {
-      isCorrect = normalizedUserAnswer === normalizedCorrectAnswer;
-    } else if (currentQuiz.quizType === "NUMBER") {
-      isCorrect = parseFloat(normalizedUserAnswer) === parseFloat(normalizedCorrectAnswer);
-    } else if (currentQuiz.quizType === "MULTIPLE_CHOICE") {
-      isCorrect = normalizedUserAnswer === normalizedCorrectAnswer;
-    } else {
-      isCorrect = normalizedUserAnswer === normalizedCorrectAnswer;
-    }
+    const isCorrect = judgeAnswer(currentQuiz, userAnswer);
 
     const result: QuizResult = {
       quizId: currentQuiz.id,
