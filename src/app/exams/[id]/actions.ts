@@ -1,5 +1,6 @@
 "use server";
 
+import { judgeAnswer } from "@/lib/answer-judge";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
@@ -105,7 +106,7 @@ export async function finishExam(attemptId: string) {
   // 各回答の正誤判定
   let correctCount = 0;
   const answerUpdates = attempt.answers.map((answer) => {
-    const isCorrect = checkAnswer(answer.quiz, answer.userAnswer);
+    const isCorrect = judgeAnswer(answer.quiz, answer.userAnswer);
     if (isCorrect) correctCount++;
 
     return prisma.examAnswer.update({
@@ -132,37 +133,6 @@ export async function finishExam(attemptId: string) {
   revalidatePath("/exams");
   revalidatePath(`/exams/${attempt.examId}`);
   return updatedAttempt;
-}
-
-// 回答の正誤判定
-function checkAnswer(
-  quiz: { quizType: string; answer: string },
-  userAnswer: string | null
-): boolean {
-  if (!userAnswer) return false;
-
-  const normalizedUserAnswer = userAnswer.trim().toLowerCase();
-  const normalizedCorrectAnswer = quiz.answer.trim().toLowerCase();
-
-  switch (quiz.quizType) {
-    case "TRUE_FALSE":
-      return normalizedUserAnswer === normalizedCorrectAnswer;
-    case "MULTIPLE_CHOICE":
-      return normalizedUserAnswer === normalizedCorrectAnswer;
-    case "SHORT_TEXT":
-      return normalizedUserAnswer === normalizedCorrectAnswer;
-    case "NUMBER": {
-      const userNum = parseFloat(normalizedUserAnswer);
-      const correctNum = parseFloat(normalizedCorrectAnswer);
-      // NaNチェック
-      if (isNaN(userNum) || isNaN(correctNum)) return false;
-      // 浮動小数点数の精度を考慮した比較
-      const epsilon = 0.0001;
-      return Math.abs(userNum - correctNum) < epsilon;
-    }
-    default:
-      return normalizedUserAnswer === normalizedCorrectAnswer;
-  }
 }
 
 // 受験記録を取得

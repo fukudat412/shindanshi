@@ -1,5 +1,6 @@
 "use client";
 
+import { judgeAnswer } from "@/lib/answer-judge";
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -232,21 +233,7 @@ export function PracticeClient({
   const checkAnswer = async () => {
     if (!currentQuiz) return;
 
-    const normalizedUserAnswer = userAnswer.trim().toLowerCase();
-    const normalizedCorrectAnswer = currentQuiz.answer.trim().toLowerCase();
-
-    let isCorrect = false;
-    if (currentQuiz.quizType === "TRUE_FALSE") {
-      isCorrect = normalizedUserAnswer === normalizedCorrectAnswer;
-    } else if (currentQuiz.quizType === "NUMBER") {
-      isCorrect =
-        parseFloat(normalizedUserAnswer) ===
-        parseFloat(normalizedCorrectAnswer);
-    } else if (currentQuiz.quizType === "MULTIPLE_CHOICE") {
-      isCorrect = normalizedUserAnswer === normalizedCorrectAnswer;
-    } else {
-      isCorrect = normalizedUserAnswer === normalizedCorrectAnswer;
-    }
+    const isCorrect = judgeAnswer(currentQuiz, userAnswer);
 
     const result: QuizResult = {
       quizId: currentQuiz.id,
