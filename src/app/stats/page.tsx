@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { prisma } from "@/lib/prisma";
+import { summarizeBySubject, summarizeOverall } from "@/lib/progress-stats";
 import { getStreakData } from "@/lib/streak-actions";
 import { ActivityChart } from "./components/activity-chart";
 import {
@@ -45,13 +46,7 @@ async function getStatistics() {
   const streakData = await getStreakData(DEFAULT_USER_ID);
 
   // 総回答数と正答率
-  const totalAttempts = allProgress.reduce(
-    (acc, p) => acc + (p.attemptCount ?? 0),
-    0
-  );
-  const correctAnswers = allProgress.filter((p) => p.score === 100).length;
-  const overallAccuracy =
-    allProgress.length > 0 ? (correctAnswers / allProgress.length) * 100 : 0;
+  const overall = summarizeOverall(allProgress);
 
   // 科目別統計
   const quizIds = allProgress.map((p) => p.targetId);
@@ -59,48 +54,17 @@ async function getStatistics() {
     where: { id: { in: quizIds } },
     include: { article: { include: { subject: true } } },
   });
-
-  const subjectStats = new Map<
-    string,
-    { name: string; correct: number; total: number; order: number }
-  >();
-
-  quizzes.forEach((quiz) => {
-    const progress = allProgress.find((p) => p.targetId === quiz.id);
-    const subject = quiz.article.subject;
-
-    if (!subjectStats.has(subject.id)) {
-      subjectStats.set(subject.id, {
-        name: subject.name,
-        correct: 0,
-        total: 0,
-        order: subject.order,
-      });
-    }
-
-    const stats = subjectStats.get(subject.id)!;
-    stats.total++;
-    if (progress?.score === 100) stats.correct++;
-  });
-
-  // 科目順でソート
-  const sortedSubjectStats = Array.from(subjectStats.entries())
-    .map(([id, stats]) => ({
-      id,
-      ...stats,
-      accuracy: stats.total > 0 ? (stats.correct / stats.total) * 100 : 0,
-    }))
-    .sort((a, b) => a.order - b.order);
+  const subjects = summarizeBySubject(allProgress, quizzes);
 
   return {
     dailyActivity,
     streak: streakData.streak,
     todayCount: streakData.todayCount,
-    totalAttempts,
-    overallAccuracy,
+    totalAttempts: overall.totalAttempts,
+    overallAccuracy: overall.accuracy,
     totalQuizzes: allProgress.length,
-    correctAnswers,
-    subjectStats: sortedSubjectStats,
+    correctAnswers: overall.correctCount,
+    subjects,
   };
 }
 
@@ -220,8 +184,8 @@ export default async function StatsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {stats.subjectStats.length > 0 ? (
-            stats.subjectStats.map((subject) => (
+          {stats.subjects.length > 0 ? (
+            stats.subjects.map((subject) => (
               <div key={subject.id}>
                 <div className="flex justify-between mb-1">
                   <span className="text-sm font-medium">{subject.name}</span>
