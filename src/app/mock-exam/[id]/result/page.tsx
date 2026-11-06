@@ -373,7 +373,7 @@ export default async function ResultPage({
                         {quiz.article.subject.name}
                       </Badge>
                     </div>
-                    <p className="text-sm">{quiz.question}</p>
+                    <p className="text-sm whitespace-pre-wrap">{quiz.question}</p>
                     <div className="text-xs space-y-1">
                       <div>
                         <span className="text-muted-foreground">正解: </span>
