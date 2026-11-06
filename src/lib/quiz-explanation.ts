@@ -56,3 +56,24 @@ export function validateExplanationFields(input: {
   }
   return errors;
 }
+
+// 空白のみの選択肢を、対応する解説ごと取り除く（位置をそろえたまま）。
+// 残った解説がすべて空なら choiceExplanations は [] にする。
+export function compactChoices(
+  choices: string[],
+  choiceExplanations: string[],
+): { choices: string[]; choiceExplanations: string[] } {
+  const kept: string[] = [];
+  const keptExplanations: string[] = [];
+  choices.forEach((choice, i) => {
+    if (choice.trim() === "") return;
+    kept.push(choice);
+    keptExplanations.push(choiceExplanations[i] ?? "");
+  });
+  return {
+    choices: kept,
+    choiceExplanations: keptExplanations.every((e) => e === "")
+      ? []
+      : keptExplanations,
+  };
+}
