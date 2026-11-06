@@ -19,9 +19,13 @@ export interface SM2Result {
  * SM-2アルゴリズムで次回復習日を計算
  *
  * @param input - 現在の学習状態
+ * @param now - 基準時刻（テストで固定するために注入できる。既定は現在時刻）
  * @returns 更新された学習状態と次回復習日
  */
-export function calculateSM2(input: SM2Input): SM2Result {
+export function calculateSM2(
+  input: SM2Input,
+  now: Date = new Date(),
+): SM2Result {
   let { easeFactor, interval, repetitions } = input;
   const { isCorrect } = input;
 
@@ -51,7 +55,7 @@ export function calculateSM2(input: SM2Input): SM2Result {
   }
 
   // 次回復習日を計算
-  const nextReviewAt = new Date();
+  const nextReviewAt = new Date(now);
   nextReviewAt.setDate(nextReviewAt.getDate() + interval);
   nextReviewAt.setHours(0, 0, 0, 0); // 日付の始まりに設定
 
