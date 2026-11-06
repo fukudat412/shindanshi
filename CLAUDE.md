@@ -4,7 +4,7 @@
 
 ## プロジェクト概要
 
-中小企業診断士試験対策の学習サイト。Next.js 16 (App Router) + TypeScript + Prisma + PostgreSQL構成。DBはローカルのPostgreSQL（docker compose）で、デプロイ先はない（Macのローカルで使う）。
+中小企業診断士試験対策の学習サイト。Next.js 16 (App Router) + TypeScript 6 + Prisma 7 + PostgreSQL 18構成（Node 26）。DBはローカルのPostgreSQL（docker compose）で、デプロイ先はない（Macのローカルで使う）。
 
 ## よく使うコマンド
 
@@ -13,7 +13,7 @@ npm run db:up        # ローカルPostgreSQL起動（docker compose）
 npm run dev          # 開発サーバー (localhost:40000)
 npm run build        # ビルド
 npm run lint         # ESLint
-npm run db:push      # スキーマ反映
+npm run db:push      # スキーマ反映（Prisma Client の再生成も行う）
 npm run db:seed      # シードデータ
 npm run db:studio    # Prisma Studio
 ```
@@ -24,7 +24,15 @@ npm run db:studio    # Prisma Studio
 - `src/app/` - Next.js App Router（ページ・API）
 - `src/components/ui/` - shadcn/uiコンポーネント
 - `src/lib/` - ユーティリティ・Prismaクライアント
-- `prisma/` - スキーマ・シードデータ
+- `src/generated/prisma/` - Prisma Client の生成物（git 管理外。`npx prisma generate` で作られる）
+- `prisma/` - スキーマ・シードデータ（接続先は `prisma.config.ts`）
+
+### Prisma 7 の使い方
+- `PrismaClient` は `@/lib/prisma` の `prisma` を使う。型・enum は `@/generated/prisma/client`（サーバー）、Client Component からは `@/generated/prisma/enums` を import する。`@prisma/client` からは import しない
+- `prisma db push` は Prisma Client を再生成しない。スキーマを変えたら続けて `npx prisma generate` を実行する（`next dev` は起動し直す。古い client がキャッシュに残るため）
+
+### 依存のインストールスクリプト（npm 12）
+- npm 12 は、`package.json` の `allowScripts` に載っていない依存のインストールスクリプトを実行しない。許可はバージョン固定なので、prisma・esbuild などを上げたら `npm install-scripts ls` で確認し、信頼できるものだけ `npm install-scripts approve <pkg>` する
 
 ### データモデル
 - **Subject** - 科目（1対多でArticle）
@@ -93,7 +101,7 @@ npm run db:studio    # Prisma Studio
 ### やってよいこと（必要なら迷わずやる）
 
 - 依存パッケージの追加・更新（`npm install`）、`package.json` の編集
-- `prisma/schema.prisma` の変更と `npx prisma db push`（接続先は使い捨てのテスト用 DB。毎回リセットされる）
+- `prisma/schema.prisma` の変更と `npx prisma db push`、続けて `npx prisma generate`（接続先は使い捨てのテスト用 DB。毎回リセットされる）。`--force-reset` と `--accept-data-loss` は AI エージェントからは Prisma が実行を拒否するので使わない（データが消える変更はゲートが `--accept-data-loss` 付きで反映する）
 - shadcn/ui コンポーネントの追加
 - 設計判断の記録（`docs/decisions/`）
 

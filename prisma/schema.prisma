@@ -1,11 +1,11 @@
+// 接続先は prisma.config.ts（Prisma 7 からスキーマに URL を書かない）
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
 }
 
 // NextAuth.js 認証モデル

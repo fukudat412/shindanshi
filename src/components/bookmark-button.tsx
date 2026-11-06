@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { Bookmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toggleBookmark } from "@/lib/bookmark-actions";
-import { TargetType } from "@prisma/client";
+import type { TargetType } from "@/generated/prisma/enums";
 import { cn } from "@/lib/utils";
 
 type BookmarkButtonProps = {

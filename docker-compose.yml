@@ -2,7 +2,7 @@
 # 起動: npm run db:up   停止: docker compose down（データは volume に残る）
 services:
   db:
-    image: postgres:17-alpine
+    image: postgres:18-alpine
     environment:
       POSTGRES_USER: shindanshi
       POSTGRES_PASSWORD: shindanshi
@@ -11,6 +11,8 @@ services:
       # この Mac からだけ接続できるようにする（同じネットワークの他の端末には公開しない）
       - "127.0.0.1:54329:5432"
     volumes:
-      - shindanshi-db:/var/lib/postgresql/data
+      # PostgreSQL 18 の公式イメージは /var/lib/postgresql/18/docker にデータを置くので、親ディレクトリを volume にする
+      # （17 のときの volume shindanshi-db は使わない。不要になったら docker volume rm shindanshi_shindanshi-db）
+      - shindanshi-pgdata:/var/lib/postgresql
 volumes:
-  shindanshi-db:
+  shindanshi-pgdata:

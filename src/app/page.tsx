@@ -123,11 +123,12 @@ async function getProgress() {
       s.name as "subjectName",
       COUNT(DISTINCT q.id)::int as "totalQuizzes",
       COUNT(DISTINCT CASE WHEN up.status = 'COMPLETED' THEN q.id END)::int as "correctQuizzes",
-      CASE
+      -- ROUND は numeric（Prisma では Decimal）を返すので、int にして number で受け取る
+      (CASE
         WHEN COUNT(DISTINCT q.id) > 0
         THEN ROUND((COUNT(DISTINCT CASE WHEN up.status = 'COMPLETED' THEN q.id END)::numeric / COUNT(DISTINCT q.id)::numeric) * 100)
         ELSE 0
-      END as "accuracy"
+      END)::int as "accuracy"
     FROM topics t
     JOIN subjects s ON t.subject_id = s.id
     JOIN quizzes q ON q.topic_id = t.id
@@ -371,8 +372,8 @@ export default async function Home() {
                       {topic.correctQuizzes}/{topic.totalQuizzes} 正解
                     </span>
                     <Badge variant={
-                      Number(topic.accuracy) >= 80 ? "success" :
-                      Number(topic.accuracy) >= 50 ? "warning" : "destructive"
+                      topic.accuracy >= 80 ? "success" :
+                      topic.accuracy >= 50 ? "warning" : "destructive"
                     }>
                       {topic.accuracy}%
                     </Badge>

@@ -1,8 +1,10 @@
-import tsconfigPaths from "vite-tsconfig-paths"
 import { defineConfig } from "vitest/config"
 
 export default defineConfig({
-  plugins: [tsconfigPaths()],
+  resolve: {
+    // tsconfig.json の paths（@/*）を Vite 自体に解決させる
+    tsconfigPaths: true,
+  },
   test: {
     include: ["tests/**/*.test.ts"],
     environment: "node",

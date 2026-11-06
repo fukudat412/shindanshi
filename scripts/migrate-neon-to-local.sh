@@ -4,7 +4,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-PG_IMAGE=postgres:17-alpine
+PG_IMAGE=postgres:18-alpine
 LOCAL_USER=shindanshi
 LOCAL_DB=shindanshi
 
@@ -33,7 +33,7 @@ mkdir -p backups
 DUMP="backups/neon-$(date +%Y%m%d-%H%M%S).sql"
 echo "▶ Neon からダンプ → $DUMP"
 if ! docker run --rm "$PG_IMAGE" pg_dump "$SRC" --schema=public --no-owner --no-acl > "$DUMP"; then
-  echo "✖ pg_dump に失敗。'server version mismatch' なら、このスクリプトと docker-compose.yml の postgres:17 を 18 に上げて再実行"
+  echo "✖ pg_dump に失敗。'server version mismatch' なら、このスクリプトと docker-compose.yml の postgres のメジャー版を Neon 以上に上げて再実行"
   exit 1
 fi
 

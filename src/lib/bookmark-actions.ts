@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
-import { TargetType } from "@prisma/client";
+import type { TargetType } from "@/generated/prisma/enums";
 
 export async function toggleBookmark(targetType: TargetType, targetId: string) {
   const session = await auth();
