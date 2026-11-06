@@ -126,6 +126,10 @@ model Quiz {
   choiceExplanations String[]  @default([]) @map("choice_explanations")
   basis         String?        @db.Text
   basisYear     Int?           @map("basis_year")
+  origin        QuizOrigin     @default(SIMILAR)
+  examYear      Int?           @map("exam_year")
+  examQuestionNumber    Int?   @map("exam_question_number")
+  examSubQuestionNumber Int?   @map("exam_sub_question_number")
   order         Int            @default(0)
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
@@ -135,6 +139,11 @@ model Quiz {
   examAnswers   ExamAnswer[]
 
   @@map("quizzes")
+}
+
+enum QuizOrigin {
+  PAST_EXAM
+  SIMILAR
 }
 
 enum QuizType {
