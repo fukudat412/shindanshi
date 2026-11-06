@@ -123,6 +123,9 @@ model Quiz {
   answer        String
   choices       String[]       @default([])
   explanation   String?        @db.Text
+  choiceExplanations String[]  @default([]) @map("choice_explanations")
+  basis         String?        @db.Text
+  basisYear     Int?           @map("basis_year")
   order         Int            @default(0)
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
