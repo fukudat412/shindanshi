@@ -200,7 +200,7 @@ export function QuizClient({
 
       <CardContent className="p-6 space-y-6">
         {/* Question */}
-        <div className="text-lg font-medium leading-relaxed">
+        <div className="text-lg font-medium leading-relaxed whitespace-pre-wrap">
           {currentQuiz.question}
         </div>
 

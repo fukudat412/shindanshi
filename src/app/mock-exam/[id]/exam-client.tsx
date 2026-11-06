@@ -388,7 +388,7 @@ export function ExamClient({
                   {currentAnswer.isMarked ? "マーク済み" : "後で見直す"}
                 </Button>
               </div>
-              <p className="text-lg leading-relaxed">{currentQuiz.question}</p>
+              <p className="text-lg leading-relaxed whitespace-pre-wrap">{currentQuiz.question}</p>
             </div>
 
             {/* 回答入力 */}
