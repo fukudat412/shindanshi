@@ -4,6 +4,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "@/lib/user-utils";
+import { getDueReviews } from "@/lib/due-review";
 import { getStreakData } from "@/lib/streak-actions";
 import { BookOpen, CheckCircle, HelpCircle, RefreshCw, ChevronRight, TrendingDown, Tags, Flame } from "lucide-react";
 
@@ -63,55 +64,8 @@ async function getProgress() {
     };
   });
 
-  // 復習が必要なクイズ（SM-2アルゴリズムに基づく）
-  const now = new Date();
-  const dueProgressRecords = await prisma.userProgress.findMany({
-    where: {
-      userId: userId,
-      targetType: "QUIZ",
-      OR: [
-        // 復習期限が過ぎている
-        { nextReviewAt: { lte: now } },
-        // まだ一度も正解していない
-        { status: "IN_PROGRESS" },
-        // nextReviewAtが設定されていない（既存データ対応）
-        { nextReviewAt: null, attemptCount: { gt: 0 } },
-      ],
-    },
-    orderBy: [
-      { nextReviewAt: "asc" }, // 最も期限が古いものから
-    ],
-    take: 5,
-  });
-
-  // クイズの詳細情報を取得
-  const quizIds = dueProgressRecords.map((p) => p.targetId);
-  const quizDetails = await prisma.quiz.findMany({
-    where: { id: { in: quizIds } },
-    include: {
-      article: { include: { subject: true } },
-      topic: true,
-    },
-  });
-  const quizMap = new Map(quizDetails.map((q) => [q.id, q]));
-
-  const dueQuizzes = dueProgressRecords.map((progress) => ({
-    ...progress,
-    quiz: quizMap.get(progress.targetId),
-  }));
-
-  // 全体の復習待ち件数
-  const dueCount = await prisma.userProgress.count({
-    where: {
-      userId: userId,
-      targetType: "QUIZ",
-      OR: [
-        { nextReviewAt: { lte: now } },
-        { status: "IN_PROGRESS" },
-        { nextReviewAt: null, attemptCount: { gt: 0 } },
-      ],
-    },
-  });
+  // 復習が必要なクイズ（SM-2アルゴリズムに基づく。出題対象外は除く）
+  const { dueQuizzes, dueCount } = await getDueReviews(userId);
 
   // topic単位の正答率ランキング（弱点分析）
   const topicStats = await prisma.$queryRaw<
