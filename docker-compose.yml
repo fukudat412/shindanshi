@@ -12,7 +12,6 @@ services:
       - "127.0.0.1:54329:5432"
     volumes:
       # PostgreSQL 18 の公式イメージは /var/lib/postgresql/18/docker にデータを置くので、親ディレクトリを volume にする
-      # （17 のときの volume shindanshi-db は使わない。不要になったら docker volume rm shindanshi_shindanshi-db）
       - shindanshi-pgdata:/var/lib/postgresql
 volumes:
   shindanshi-pgdata:
