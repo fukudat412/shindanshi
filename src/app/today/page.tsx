@@ -1,0 +1,57 @@
+import { prisma } from "@/lib/prisma";
+import { getCurrentUserId } from "@/lib/user-utils";
+import { buildTodayQueue, queueReasonLabel } from "@/lib/today-queue";
+import { shuffleChoicesForDisplay } from "@/lib/quiz-display";
+import { QuizClient } from "@/app/quiz/quiz-client";
+import { TodayQueueSummary } from "./queue-summary";
+
+export const dynamic = "force-dynamic";
+
+export default async function TodayPage() {
+  const userId = await getCurrentUserId();
+  const [progress, quizzes] = await Promise.all([
+    prisma.userProgress.findMany({ where: { userId, targetType: "QUIZ" } }),
+    prisma.quiz.findMany({
+      orderBy: [
+        { article: { subject: { order: "asc" } } },
+        { article: { order: "asc" } },
+        { order: "asc" },
+      ],
+    }),
+  ]);
+
+  const queue = buildTodayQueue({
+    quizzes: quizzes.map((q) => ({ id: q.id, topicId: q.topicId })),
+    progress,
+    now: new Date(),
+  });
+
+  const quizById = new Map(quizzes.map((q) => [q.id, q]));
+  const counts = { due: 0, weak: 0, new: 0 };
+  const items = queue.flatMap((item) => {
+    const q = quizById.get(item.quizId);
+    if (!q) return [];
+    counts[item.reason] += 1;
+    return [
+      shuffleChoicesForDisplay({
+        id: q.id,
+        question: q.question,
+        quizType: q.quizType,
+        answer: q.answer,
+        choices: q.choices,
+        explanation: q.explanation,
+        label: queueReasonLabel(item.reason),
+      }),
+    ];
+  });
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-6">
+      <div className="space-y-2">
+        <h1 className="text-2xl font-bold">今日のキュー</h1>
+        <TodayQueueSummary counts={counts} />
+      </div>
+      {items.length > 0 && <QuizClient quizzes={items} />}
+    </div>
+  );
+}

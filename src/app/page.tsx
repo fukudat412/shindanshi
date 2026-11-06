@@ -262,6 +262,16 @@ export default async function Home() {
         </Card>
       </div>
 
+      <div className="flex justify-end">
+        <Link
+          href="/today"
+          className="text-sm text-primary hover:text-primary/80 font-medium flex items-center gap-1 transition-colors"
+        >
+          今日のキューを始める
+          <ChevronRight className="w-4 h-4" />
+        </Link>
+      </div>
+
       {dueQuizzes.length > 0 && (
         <Card className="border-warning/30 bg-gradient-to-r from-warning/5 to-transparent">
           <CardHeader className="flex flex-row items-center gap-4 space-y-0">
