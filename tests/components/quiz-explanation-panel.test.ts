@@ -52,4 +52,15 @@ describe("QuizExplanationPanel", () => {
       expect(readFileSync(f, "utf8")).toMatch(/choiceFeedback: buildChoiceFeedback\(/);
     }
   });
+
+  it("unverified なら未確認の注意書きを添え、検証済みなら添えない", () => {
+    expect(render({ explanation: "本文", unverified: true })).toContain("まだ確認していません");
+    expect(render({ explanation: "本文" })).not.toContain("まだ確認していません");
+    // 解説が何もなければ注意書きも出さない
+    expect(render({ unverified: true })).toBe("");
+  });
+
+  it("解説の改行をそのまま表示する", () => {
+    expect(render({ explanation: "1行目\n2行目" })).toContain("whitespace-pre-wrap");
+  });
 });

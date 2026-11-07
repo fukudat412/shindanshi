@@ -13,9 +13,14 @@ export type ImportPastExamsResult =
   | { ok: true; created: number; updated: number }
   | { ok: false; errors: PastExamImportError[] };
 
+// 取り込み項目を quiz の data にする。図は入力の順に作り直す（更新時は既存の図を消してから作る）
 const toData = ({ ...item }: PastExamImportItem & { subjectId?: string }) => {
   delete item.subjectId;
-  return item;
+  const { images, ...rest } = item;
+  return {
+    ...rest,
+    images: { create: images.map((image, order) => ({ order, ...image })) },
+  };
 };
 
 export async function importPastExams(text: string): Promise<ImportPastExamsResult> {
@@ -74,9 +79,15 @@ export async function importPastExams(text: string): Promise<ImportPastExamsResu
 
   await prisma.$transaction([
     ...plan.creates.map((item) => prisma.quiz.create({ data: toData(item) })),
-    ...plan.updates.map(({ id, item }) =>
-      prisma.quiz.update({ where: { id }, data: toData(item) }),
-    ),
+    ...plan.updates.map(({ id, item }) => {
+      const data = toData(item);
+      // Prisma のネスト書き込みは deleteMany を create より先に実行する。
+      // (quizId, order) が一意なので、この順でないと作り直せない（2 回続けて取り込んで確認済み）
+      return prisma.quiz.update({
+        where: { id },
+        data: { ...data, images: { deleteMany: {}, ...data.images } },
+      });
+    }),
   ]);
 
   revalidatePath("/admin/quizzes");

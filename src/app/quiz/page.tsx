@@ -3,7 +3,8 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { shuffleChoicesForDisplay } from "@/lib/quiz-display";
-import { buildChoiceFeedback } from "@/lib/quiz-explanation";
+import { buildChoiceFeedback, isExplanationUnverified } from "@/lib/quiz-explanation";
+import { quizImagesInclude } from "@/lib/quiz-image";
 import { servableQuizWhere } from "@/lib/quiz-eligibility";
 import { formatQuizSource } from "@/lib/past-exam";
 import { QuizClient } from "./quiz-client";
@@ -14,7 +15,7 @@ async function getQuizzes(articleId?: string, quizId?: string) {
   if (quizId) {
     const quiz = await prisma.quiz.findFirst({
       where: { AND: [{ id: quizId }, servableQuizWhere] },
-      include: { article: { include: { subject: true } } },
+      include: { article: { include: { subject: true } }, images: quizImagesInclude },
     });
     return quiz ? [quiz] : [];
   }
@@ -22,7 +23,7 @@ async function getQuizzes(articleId?: string, quizId?: string) {
   if (articleId) {
     return prisma.quiz.findMany({
       where: { AND: [{ articleId }, servableQuizWhere] },
-      include: { article: { include: { subject: true } } },
+      include: { article: { include: { subject: true } }, images: quizImagesInclude },
       orderBy: { order: "asc" },
     });
   }
@@ -103,6 +104,8 @@ export default async function QuizPage({
             basis: q.basis,
             basisYear: q.basisYear,
             sourceLabel: formatQuizSource(q),
+            images: q.images,
+            explanationUnverified: isExplanationUnverified(q),
           };
         })}
         articleId={article.id}

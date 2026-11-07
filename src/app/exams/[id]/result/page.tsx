@@ -5,6 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { QuizImages } from "@/components/quiz-images";
+import { QuizExplanationPanel } from "@/components/quiz-explanation-panel";
+import { quizImagesInclude } from "@/lib/quiz-image";
+import { isExplanationUnverified } from "@/lib/quiz-explanation";
 import {
   CheckCircle,
   XCircle,
@@ -31,7 +35,7 @@ async function getResult(examId: string, attemptId: string) {
         include: {
           subject: true,
           questions: {
-            include: { quiz: true },
+            include: { quiz: { include: { images: quizImagesInclude } } },
             orderBy: { order: "asc" },
           },
         },
@@ -202,6 +206,7 @@ export default async function ExamResultPage({ params, searchParams }: Props) {
                         問題
                       </div>
                       <p className="whitespace-pre-wrap">{question.quiz.question}</p>
+                      <QuizImages images={question.quiz.images} />
                     </div>
 
                     {/* 選択肢（MULTIPLE_CHOICEの場合） */}
@@ -239,6 +244,11 @@ export default async function ExamResultPage({ params, searchParams }: Props) {
                                     あなたの回答
                                   </Badge>
                                 )}
+                                {question.quiz.choiceExplanations[i] && (
+                                  <p className="mt-1 text-muted-foreground whitespace-pre-wrap">
+                                    {question.quiz.choiceExplanations[i]}
+                                  </p>
+                                )}
                               </div>
                             );
                           })}
@@ -275,16 +285,13 @@ export default async function ExamResultPage({ params, searchParams }: Props) {
                     )}
 
                     {/* 解説 */}
-                    {question.quiz.explanation && (
-                      <div>
-                        <div className="text-sm font-medium text-muted-foreground mb-1">
-                          解説
-                        </div>
-                        <p className="text-sm whitespace-pre-wrap bg-background p-3 rounded-lg border">
-                          {question.quiz.explanation}
-                        </p>
-                      </div>
-                    )}
+                    <QuizExplanationPanel
+                      explanation={question.quiz.explanation}
+                      choiceFeedback={[]}
+                      basis={question.quiz.basis}
+                      basisYear={question.quiz.basisYear}
+                      unverified={isExplanationUnverified(question.quiz)}
+                    />
                   </div>
                 </details>
               );

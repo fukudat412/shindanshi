@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { QuizExplanationPanel } from "@/components/quiz-explanation-panel";
 import { QuizSourceBadge } from "@/components/quiz-source-badge";
+import { QuizImages } from "@/components/quiz-images";
+import type { QuizImageRef } from "@/lib/quiz-image";
 import type { ChoiceFeedback } from "@/lib/quiz-explanation";
 import { saveQuizResult } from "@/app/quiz/actions";
 import {
@@ -43,6 +45,8 @@ type Quiz = {
   basisYear: number | null;
   sourceLabel: string | null;
   subjectName: string;
+  images: QuizImageRef[];
+  explanationUnverified: boolean;
 };
 
 type QuizResult = {
@@ -388,6 +392,7 @@ export function PracticeClient({
         <div className="text-lg font-medium leading-relaxed whitespace-pre-wrap">
           {currentQuiz.question}
         </div>
+        <QuizImages images={currentQuiz.images} />
 
         {!showResult ? (
           <div className="space-y-4">
@@ -506,6 +511,7 @@ export function PracticeClient({
               choiceFeedback={currentQuiz.choiceFeedback}
               basis={currentQuiz.basis}
               basisYear={currentQuiz.basisYear}
+              unverified={currentQuiz.explanationUnverified}
             />
 
             <Button

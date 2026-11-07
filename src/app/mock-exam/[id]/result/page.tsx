@@ -6,6 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { QuizImages } from "@/components/quiz-images";
+import { QuizExplanationPanel } from "@/components/quiz-explanation-panel";
+import { quizImagesInclude } from "@/lib/quiz-image";
+import { buildChoiceFeedback, isExplanationUnverified } from "@/lib/quiz-explanation";
 import {
   Trophy,
   CheckCircle,
@@ -65,6 +69,7 @@ export default async function ResultPage({
       article: {
         include: { subject: true },
       },
+      images: quizImagesInclude,
     },
   });
 
@@ -374,6 +379,7 @@ export default async function ResultPage({
                       </Badge>
                     </div>
                     <p className="text-sm whitespace-pre-wrap">{quiz.question}</p>
+                    <QuizImages images={quiz.images} />
                     <div className="text-xs space-y-1">
                       <div>
                         <span className="text-muted-foreground">正解: </span>
@@ -409,12 +415,13 @@ export default async function ResultPage({
                         <span className="text-muted-foreground">未回答</span>
                       )}
                     </div>
-                    {quiz.explanation && (
-                      <div className="mt-2 p-3 bg-primary/5 rounded text-xs">
-                        <span className="font-medium text-primary">解説: </span>
-                        {quiz.explanation}
-                      </div>
-                    )}
+                    <QuizExplanationPanel
+                      explanation={quiz.explanation}
+                      choiceFeedback={buildChoiceFeedback(quiz, quiz.choices)}
+                      basis={quiz.basis}
+                      basisYear={quiz.basisYear}
+                      unverified={isExplanationUnverified(quiz)}
+                    />
                   </div>
                 </div>
               </div>

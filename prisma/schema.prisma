@@ -138,8 +138,24 @@ model Quiz {
   topic         Topic?         @relation(fields: [topicId], references: [id], onDelete: SetNull)
   examQuestions ExamQuestion[]
   examAnswers   ExamAnswer[]
+  images        QuizImage[]
 
   @@map("quizzes")
+}
+
+// 問題の図（PNG）。問題文の下に order 順で表示する
+model QuizImage {
+  id        String   @id @default(cuid())
+  quizId    String   @map("quiz_id")
+  order     Int
+  data      Bytes
+  width     Int
+  height    Int
+  createdAt DateTime @default(now())
+  quiz      Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@unique([quizId, order])
+  @@map("quiz_images")
 }
 
 enum VerificationStatus {

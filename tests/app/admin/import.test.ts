@@ -71,6 +71,45 @@ describe("importPastExams", () => {
   });
 });
 
+describe("importPastExams の図", () => {
+  const png = Buffer.from([
+    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52,
+    0, 0, 0, 4, 0, 0, 0, 3, 8, 0, 0, 0, 0,
+  ]).toString("base64");
+
+  it("新規は図を入力の順に作り、更新は既存の図を消してから作り直す", async () => {
+    m.quizFindMany.mockResolvedValue([
+      { id: "q1", examYear: 2023, examQuestionNumber: 3, examSubQuestionNumber: null, article: { subjectId: "s1" } },
+    ]);
+    await run([
+      { ...base, images: [png] },
+      { ...base, examQuestionNumber: 4, images: [png, png] },
+    ]);
+    const created = m.create.mock.calls[0][0] as { data: Record<string, unknown> };
+    expect(created.data.subjectId).toBeUndefined();
+    expect(created.data.images).toEqual({
+      create: [
+        expect.objectContaining({ order: 0, width: 4, height: 3 }),
+        expect.objectContaining({ order: 1, width: 4, height: 3 }),
+      ],
+    });
+    const updated = m.update.mock.calls[0][0] as { data: Record<string, unknown> };
+    expect(updated.data.images).toEqual({
+      deleteMany: {},
+      create: [expect.objectContaining({ order: 0, width: 4, height: 3 })],
+    });
+  });
+
+  it("images がなければ、更新時に既存の図を消す", async () => {
+    m.quizFindMany.mockResolvedValue([
+      { id: "q1", examYear: 2023, examQuestionNumber: 3, examSubQuestionNumber: null, article: { subjectId: "s1" } },
+    ]);
+    await run([base]);
+    const updated = m.update.mock.calls[0][0] as { data: Record<string, unknown> };
+    expect(updated.data.images).toEqual({ deleteMany: {}, create: [] });
+  });
+});
+
 describe("管理画面メニュー", () => {
   it("T-015 AC6 admin/page.tsx に /admin/import がある", () => {
     expect(readFileSync("src/app/admin/page.tsx", "utf8")).toContain('href: "/admin/import"');

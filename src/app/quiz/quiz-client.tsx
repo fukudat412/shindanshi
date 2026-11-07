@@ -11,6 +11,8 @@ import { Progress } from "@/components/ui/progress";
 import { saveQuizResult } from "./actions";
 import { QuizExplanationPanel } from "@/components/quiz-explanation-panel";
 import { QuizSourceBadge } from "@/components/quiz-source-badge";
+import { QuizImages } from "@/components/quiz-images";
+import type { QuizImageRef } from "@/lib/quiz-image";
 import type { ChoiceFeedback } from "@/lib/quiz-explanation";
 import { BookmarkButton } from "@/components/bookmark-button";
 import { CheckCircle, XCircle, RefreshCw, FileText, ChevronRight, Trophy, Target } from "lucide-react";
@@ -26,6 +28,8 @@ type Quiz = {
   basis: string | null;
   basisYear: number | null;
   sourceLabel: string | null;
+  images: QuizImageRef[];
+  explanationUnverified: boolean;
   label?: string;
 };
 
@@ -203,6 +207,7 @@ export function QuizClient({
         <div className="text-lg font-medium leading-relaxed whitespace-pre-wrap">
           {currentQuiz.question}
         </div>
+        <QuizImages images={currentQuiz.images} />
 
         {!showResult ? (
           <div className="space-y-4">
@@ -319,6 +324,7 @@ export function QuizClient({
               choiceFeedback={currentQuiz.choiceFeedback}
               basis={currentQuiz.basis}
               basisYear={currentQuiz.basisYear}
+              unverified={currentQuiz.explanationUnverified}
             />
 
             <Button onClick={nextQuiz} className="w-full h-12 text-base gap-2">
