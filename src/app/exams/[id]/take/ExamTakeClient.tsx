@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { saveAnswer, pauseExam, finishExam } from "../actions";
 import { QuizImages } from "@/components/quiz-images";
-import { choiceLabel } from "@/lib/past-exam-sets";
+import { choiceLabel, choiceTextAfterLabel } from "@/lib/past-exam-sets";
 import type { QuizImageRef } from "@/lib/quiz-image";
 
 type Question = {
@@ -308,8 +308,7 @@ export default function ExamTakeClient({
                           onClick={() => handleAnswerChange(choice)}
                         >
                           <span className="font-semibold mr-3 shrink-0">{choiceLabel(index)}</span>
-                          {/* 選択肢が図のとき（記号だけ）は記号を重ねて出さない */}
-                          {choice !== choiceLabel(index) && <span>{choice}</span>}
+                          {choiceTextAfterLabel(choice, index) && <span>{choice}</span>}
                         </Button>
                       ))}
                     </div>

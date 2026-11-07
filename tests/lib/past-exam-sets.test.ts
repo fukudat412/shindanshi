@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { choiceLabel, pastExamTimeLimit, planPastExamSets } from "@/lib/past-exam-sets";
+import {
+  choiceLabel,
+  choiceTextAfterLabel,
+  pastExamTimeLimit,
+  planPastExamSets,
+} from "@/lib/past-exam-sets";
 
 const subjects = [
   { id: "A", name: "経済学・経済政策", order: 1 },
@@ -57,5 +62,11 @@ describe("pastExamTimeLimit・choiceLabel", () => {
   it("選択肢の記号はア〜コ、それより後は数字", () => {
     expect([0, 1, 4].map(choiceLabel)).toEqual(["ア", "イ", "オ"]);
     expect(choiceLabel(10)).toBe("11");
+  });
+
+  it("選択肢が記号だけ（図の選択肢）なら本文を出さず、それ以外は本文を出す", () => {
+    expect(choiceTextAfterLabel("ウ", 2)).toBeNull();
+    expect(choiceTextAfterLabel("ア", 2)).toBe("ア");
+    expect(choiceTextAfterLabel("需要が増える", 0)).toBe("需要が増える");
   });
 });

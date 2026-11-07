@@ -167,13 +167,19 @@ export async function buildPastExamSets() {
   ]);
 
   const plans = planPastExamSets(
-    quizzes.map((q) => ({
-      id: q.id,
-      subjectId: q.article.subjectId,
-      examYear: q.examYear as number,
-      examQuestionNumber: q.examQuestionNumber as number,
-      examSubQuestionNumber: q.examSubQuestionNumber,
-    })),
+    quizzes.flatMap((q) =>
+      q.examYear !== null && q.examQuestionNumber !== null
+        ? [
+            {
+              id: q.id,
+              subjectId: q.article.subjectId,
+              examYear: q.examYear,
+              examQuestionNumber: q.examQuestionNumber,
+              examSubQuestionNumber: q.examSubQuestionNumber,
+            },
+          ]
+        : [],
+    ),
     subjects,
   );
 

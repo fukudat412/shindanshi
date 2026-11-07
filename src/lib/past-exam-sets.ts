@@ -69,3 +69,9 @@ const CHOICE_LABELS = ["ア", "イ", "ウ", "エ", "オ", "カ", "キ", "ク", "
 export function choiceLabel(index: number): string {
   return CHOICE_LABELS[index] ?? String(index + 1);
 }
+
+// 記号のあとに出す選択肢の本文。選択肢そのものが図の過去問は、取り込みの決まりで本文を記号だけ（"ア" など）にしているので、
+// 記号と同じなら重ねて出さない（null）
+export function choiceTextAfterLabel(choice: string, index: number): string | null {
+  return choice === choiceLabel(index) ? null : choice;
+}
