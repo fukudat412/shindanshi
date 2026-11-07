@@ -81,6 +81,8 @@ export async function importPastExams(text: string): Promise<ImportPastExamsResu
     ...plan.creates.map((item) => prisma.quiz.create({ data: toData(item) })),
     ...plan.updates.map(({ id, item }) => {
       const data = toData(item);
+      // Prisma のネスト書き込みは deleteMany を create より先に実行する。
+      // (quizId, order) が一意なので、この順でないと作り直せない（2 回続けて取り込んで確認済み）
       return prisma.quiz.update({
         where: { id },
         data: { ...data, images: { deleteMany: {}, ...data.images } },

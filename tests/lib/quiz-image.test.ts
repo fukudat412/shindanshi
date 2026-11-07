@@ -21,6 +21,7 @@ describe("readPngSize", () => {
     expect(readPngSize(jpeg)).toBeNull();
     expect(readPngSize(header(10, 10).slice(0, 20))).toBeNull();
     expect(readPngSize(header(0, 10))).toBeNull();
+    expect(readPngSize(header(10_001, 10))).toBeNull();
   });
 });
 

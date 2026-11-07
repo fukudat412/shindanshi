@@ -104,7 +104,7 @@ describe("parsePastExamImport の images", () => {
   it("PNG でない・base64 でない・配列でない images は、何番目かを付けて弾く", () => {
     const notPng = Buffer.from("hello world, this is not a png file").toString("base64");
     expect(errs([{ ...base, images: [png, notPng] }]).map((e) => e.message)).toEqual([
-      "images[1]: PNG 画像ではありません",
+      "images[1]: PNG 画像ではないか、大きさが 10000px を超えています",
     ]);
     expect(errs([{ ...base, images: ["@@@"] }])[0].message).toBe(
       "images[0]: base64 の文字列ではありません",

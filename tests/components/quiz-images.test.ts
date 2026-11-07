@@ -19,6 +19,8 @@ describe("QuizImages", () => {
     expect(html.indexOf("/api/quiz-images/img1")).toBeLessThan(html.indexOf("/api/quiz-images/img2"));
     expect(html).toContain('width="800"');
     expect(html).toContain('height="400"');
+    expect(html).toContain('alt="問題の図 1/2"');
+    expect(html).toContain('alt="問題の図 2/2"');
   });
 
   it("図がなければ何も描画しない", () => {
@@ -42,7 +44,7 @@ describe("QuizImages", () => {
 describe("isExplanationUnverified", () => {
   it("検証済み以外は未確認として扱う", () => {
     expect(isExplanationUnverified({ verificationStatus: "VERIFIED" })).toBe(false);
-    for (const s of ["DRAFT", "NEEDS_FIX", "REJECTED"]) {
+    for (const s of ["DRAFT", "NEEDS_FIX", "REJECTED"] as const) {
       expect(isExplanationUnverified({ verificationStatus: s })).toBe(true);
     }
   });

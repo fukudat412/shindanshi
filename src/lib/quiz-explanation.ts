@@ -1,4 +1,4 @@
-import type { QuizType } from "@/generated/prisma/enums";
+import type { QuizType, VerificationStatus } from "@/generated/prisma/enums";
 import { judgeAnswer } from "@/lib/answer-judge";
 
 export type ChoiceFeedback = {
@@ -79,6 +79,8 @@ export function compactChoices(
 }
 
 // 解説に「未確認」の注意書きを添えるか。検証済みでない問題（過去問の AI 解説など）は添える
-export function isExplanationUnverified(quiz: { verificationStatus: string }): boolean {
+export function isExplanationUnverified(quiz: {
+  verificationStatus: VerificationStatus;
+}): boolean {
   return quiz.verificationStatus !== "VERIFIED";
 }
