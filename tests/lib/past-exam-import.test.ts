@@ -32,6 +32,7 @@ describe("parsePastExamImport", () => {
           choiceExplanations: [],
           basis: null,
           basisYear: null,
+          images: [],
         },
       ],
     });
@@ -85,6 +86,41 @@ describe("parsePastExamImport", () => {
   });
 });
 
+describe("parsePastExamImport の images", () => {
+  // 幅 3・高さ 2 の PNG（IHDR まで。中身は読まないので、それ以降は省いてよい）
+  const png = Buffer.from([
+    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52,
+    0, 0, 0, 3, 0, 0, 0, 2, 8, 0, 0, 0, 0,
+  ]).toString("base64");
+
+  it("base64 の PNG を読み、大きさを付けて入力の順に返す", () => {
+    const r = run([{ ...base, images: [png, png] }]);
+    if (!r.ok) throw new Error(JSON.stringify(r.errors));
+    expect(r.items[0].images).toHaveLength(2);
+    expect(r.items[0].images[0]).toMatchObject({ width: 3, height: 2 });
+    expect(r.items[0].images[0].data[0]).toBe(0x89);
+  });
+
+  it("PNG でない・base64 でない・配列でない images は、何番目かを付けて弾く", () => {
+    const notPng = Buffer.from("hello world, this is not a png file").toString("base64");
+    expect(errs([{ ...base, images: [png, notPng] }]).map((e) => e.message)).toEqual([
+      "images[1]: PNG 画像ではありません",
+    ]);
+    expect(errs([{ ...base, images: ["@@@"] }])[0].message).toBe(
+      "images[0]: base64 の文字列ではありません",
+    );
+    expect(errs([{ ...base, images: "x" }])[0].message).toBe(
+      "images は文字列の配列で指定してください",
+    );
+  });
+
+  it("11 枚以上は弾く", () => {
+    expect(errs([{ ...base, images: Array(11).fill(png) }])[0].message).toBe(
+      "images は 10 枚までです",
+    );
+  });
+});
+
 describe("planPastExamUpsert", () => {
   const item = (o: Record<string, unknown> = {}) =>
     ({
@@ -93,6 +129,7 @@ describe("planPastExamUpsert", () => {
       topicId: null,
       origin: "PAST_EXAM",
       examSubQuestionNumber: null,
+      images: [],
       choices: [],
       explanation: null,
       choiceExplanations: [],

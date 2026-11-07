@@ -3,7 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "@/lib/user-utils";
 import { shuffle } from "@/lib/shuffle";
 import { shuffleChoicesForDisplay } from "@/lib/quiz-display";
-import { buildChoiceFeedback } from "@/lib/quiz-explanation";
+import { buildChoiceFeedback, isExplanationUnverified } from "@/lib/quiz-explanation";
+import { quizImagesInclude } from "@/lib/quiz-image";
 import { servableQuizWhere } from "@/lib/quiz-eligibility";
 import { formatQuizSource } from "@/lib/past-exam";
 import { PracticeClient } from "./practice-client";
@@ -56,6 +57,7 @@ async function getRandomQuizzes(
         },
         include: {
           article: { include: { subject: true } },
+          images: quizImagesInclude,
         },
       });
 
@@ -72,6 +74,7 @@ async function getRandomQuizzes(
     },
     include: {
       article: { include: { subject: true } },
+      images: quizImagesInclude,
     },
   });
 
@@ -155,6 +158,8 @@ export default async function PracticePage({
               basisYear: q.basisYear,
               sourceLabel: formatQuizSource(q),
               subjectName: q.article.subject.name,
+              images: q.images,
+              explanationUnverified: isExplanationUnverified(q),
             };
           }) ?? null
         }

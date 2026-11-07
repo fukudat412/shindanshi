@@ -1,17 +1,21 @@
 import { Lightbulb } from "lucide-react";
 import type { ChoiceFeedback } from "@/lib/quiz-explanation";
+import { UnverifiedExplanationNote } from "@/components/unverified-explanation-note";
 
 // 回答後の解説ブロック。表示だけを担当する（Server Action や DB には触れない）。
+// unverified のときは、解説がまだ確認されていないことを書き添える
 export function QuizExplanationPanel({
   explanation,
   choiceFeedback,
   basis,
   basisYear,
+  unverified = false,
 }: {
   explanation: string | null;
   choiceFeedback: ChoiceFeedback[];
   basis: string | null;
   basisYear: number | null;
+  unverified?: boolean;
 }) {
   if (!explanation && choiceFeedback.length === 0 && !basis && basisYear === null) {
     return null;
@@ -25,7 +29,7 @@ export function QuizExplanationPanel({
             <Lightbulb className="w-4 h-4" />
             解説
           </div>
-          <p className="text-sm leading-relaxed">{explanation}</p>
+          <p className="text-sm leading-relaxed whitespace-pre-wrap">{explanation}</p>
         </div>
       )}
       {choiceFeedback.length > 0 && (
@@ -37,7 +41,7 @@ export function QuizExplanationPanel({
                 <span className="ml-2">{choice.text}</span>
               </div>
               {choice.explanation && (
-                <p className="text-muted-foreground">{choice.explanation}</p>
+                <p className="text-muted-foreground whitespace-pre-wrap">{choice.explanation}</p>
               )}
             </li>
           ))}
@@ -52,6 +56,7 @@ export function QuizExplanationPanel({
       {basisYear !== null && (
         <p className="text-sm text-muted-foreground">基準年度: {basisYear}年度</p>
       )}
+      {unverified && <UnverifiedExplanationNote />}
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { notFound, redirect } from "next/navigation";
 import ExamTakeClient from "./ExamTakeClient";
 import { startExam, getAttempt } from "../actions";
+import { quizImagesInclude } from "@/lib/quiz-image";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,7 @@ export default async function ExamTakePage({ params, searchParams }: Props) {
     include: {
       subject: true,
       questions: {
-        include: { quiz: true },
+        include: { quiz: { include: { images: quizImagesInclude } } },
         orderBy: { order: "asc" },
       },
     },
@@ -49,6 +50,7 @@ export default async function ExamTakePage({ params, searchParams }: Props) {
     choices: q.quiz.choices,
     answer: q.quiz.answer,
     explanation: q.quiz.explanation,
+    images: q.quiz.images,
   }));
 
   // 既存の回答をマップ

@@ -17,6 +17,8 @@ import {
   Flag,
 } from "lucide-react";
 import { saveAnswer, pauseExam, finishExam } from "../actions";
+import { QuizImages } from "@/components/quiz-images";
+import type { QuizImageRef } from "@/lib/quiz-image";
 
 type Question = {
   id: string;
@@ -26,6 +28,7 @@ type Question = {
   choices: string[];
   answer: string;
   explanation: string | null;
+  images: QuizImageRef[];
 };
 
 type Props = {
@@ -259,6 +262,7 @@ export default function ExamTakeClient({
                 <div className="text-lg leading-relaxed whitespace-pre-wrap">
                   {currentQuestion.question}
                 </div>
+                <QuizImages images={currentQuestion.images} />
 
                 {/* 回答入力 */}
                 <div className="space-y-3">

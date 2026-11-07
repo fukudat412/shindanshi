@@ -2,7 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "@/lib/user-utils";
 import { buildTodayQueue, queueReasonLabel } from "@/lib/today-queue";
 import { shuffleChoicesForDisplay } from "@/lib/quiz-display";
-import { buildChoiceFeedback } from "@/lib/quiz-explanation";
+import { buildChoiceFeedback, isExplanationUnverified } from "@/lib/quiz-explanation";
+import { quizImagesInclude } from "@/lib/quiz-image";
 import { servableQuizWhere } from "@/lib/quiz-eligibility";
 import { formatQuizSource } from "@/lib/past-exam";
 import { QuizClient } from "@/app/quiz/quiz-client";
@@ -16,6 +17,7 @@ export default async function TodayPage() {
     prisma.userProgress.findMany({ where: { userId, targetType: "QUIZ" } }),
     prisma.quiz.findMany({
       where: servableQuizWhere,
+      include: { images: quizImagesInclude },
       orderBy: [
         { article: { subject: { order: "asc" } } },
         { article: { order: "asc" } },
@@ -49,6 +51,8 @@ export default async function TodayPage() {
         basis: q.basis,
         basisYear: q.basisYear,
         sourceLabel: formatQuizSource(q),
+        images: q.images,
+        explanationUnverified: isExplanationUnverified(q),
         label: queueReasonLabel(item.reason),
       },
     ];

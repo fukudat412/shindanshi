@@ -77,3 +77,8 @@ export function compactChoices(
       : keptExplanations,
   };
 }
+
+// 解説に「未確認」の注意書きを添えるか。検証済みでない問題（過去問の AI 解説など）は添える
+export function isExplanationUnverified(quiz: { verificationStatus: string }): boolean {
+  return quiz.verificationStatus !== "VERIFIED";
+}

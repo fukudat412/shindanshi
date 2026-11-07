@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { notFound, redirect } from "next/navigation";
 import { ExamClient } from "./exam-client";
+import { quizImagesInclude } from "@/lib/quiz-image";
 
 export const dynamic = "force-dynamic";
 
@@ -54,6 +55,7 @@ export default async function ExamPage({
       article: {
         include: { subject: true },
       },
+      images: quizImagesInclude,
     },
   });
 
@@ -68,6 +70,7 @@ export default async function ExamPage({
       quizType: quiz.quizType,
       choices: quiz.choices,
       subjectName: quiz.article.subject.name,
+      images: quiz.images,
       userAnswer: answer.userAnswer,
       isMarked: answer.isMarked,
       order: answer.order,

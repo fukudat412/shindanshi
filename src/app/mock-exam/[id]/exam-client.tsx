@@ -38,6 +38,8 @@ import {
   AlertTriangle,
   Home,
 } from "lucide-react";
+import { QuizImages } from "@/components/quiz-images";
+import type { QuizImageRef } from "@/lib/quiz-image";
 
 type Quiz = {
   id: string;
@@ -45,6 +47,7 @@ type Quiz = {
   quizType: "TRUE_FALSE" | "SHORT_TEXT" | "NUMBER" | "MULTIPLE_CHOICE";
   choices: string[];
   subjectName: string;
+  images: QuizImageRef[];
   userAnswer: string | null;
   isMarked: boolean;
   order: number;
@@ -389,6 +392,7 @@ export function ExamClient({
                 </Button>
               </div>
               <p className="text-lg leading-relaxed whitespace-pre-wrap">{currentQuiz.question}</p>
+              <QuizImages images={currentQuiz.images} />
             </div>
 
             {/* 回答入力 */}

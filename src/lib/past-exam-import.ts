@@ -1,6 +1,7 @@
 import type { QuizOrigin, QuizType } from "@/generated/prisma/enums";
 import { validatePastExamMeta } from "@/lib/past-exam";
 import { validateExplanationFields } from "@/lib/quiz-explanation";
+import { decodeBase64Png, type QuizImageData } from "@/lib/quiz-image";
 
 export type PastExamImportItem = {
   articleId: string;
@@ -17,6 +18,7 @@ export type PastExamImportItem = {
   choiceExplanations: string[];
   basis: string | null;
   basisYear: number | null;
+  images: QuizImageData[];
 };
 
 export type PastExamImportError = { index: number; message: string };
@@ -40,6 +42,8 @@ const isNonEmptyString = (v: unknown): v is string =>
 
 const isStringArray = (v: unknown): v is string[] =>
   Array.isArray(v) && v.every((x) => typeof x === "string");
+
+export const MAX_IMAGES_PER_QUIZ = 10;
 
 // 1要素を検証して item かエラーメッセージの配列を返す
 function parseItem(raw: unknown): PastExamImportItem | string[] {
@@ -92,6 +96,19 @@ function parseItem(raw: unknown): PastExamImportItem | string[] {
   const choices = optStringArray("choices");
   const choiceExplanations = optStringArray("choiceExplanations");
 
+  // 図（base64 の PNG の配列）
+  const images: QuizImageData[] = [];
+  const rawImages = optStringArray("images");
+  if (rawImages.length > MAX_IMAGES_PER_QUIZ) {
+    errors.push(`images は ${MAX_IMAGES_PER_QUIZ} 枚までです`);
+  } else {
+    rawImages.forEach((text, i) => {
+      const decoded = decodeBase64Png(text);
+      if (typeof decoded === "string") errors.push(`images[${i}]: ${decoded}`);
+      else images.push(decoded);
+    });
+  }
+
   if (errors.length > 0) return errors;
 
   const item: PastExamImportItem = {
@@ -109,6 +126,7 @@ function parseItem(raw: unknown): PastExamImportItem | string[] {
     choiceExplanations,
     basis,
     basisYear,
+    images,
   };
 
   // 出題形式ごとの検証

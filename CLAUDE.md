@@ -38,6 +38,7 @@ npm run db:studio    # Prisma Studio
 - **Subject** - 科目（1対多でArticle）
 - **Article** - 記事（1対多でQuiz）
 - **Quiz** - クイズ（TRUE_FALSE, SHORT_TEXT, NUMBER, MULTIPLE_CHOICE）。出自（過去問 PAST_EXAM／類題 SIMILAR）と検証状態（既定は DRAFT）を持つ。出題するのは検証済みか過去問だけで、条件は `src/lib/quiz-eligibility.ts` にまとめてある
+- **QuizImage** - 問題の図（PNG を DB に保存し、`/api/quiz-images/[id]` で返す）。過去問の図は公開しないので、git には入れない
 - **UserProgress** - 学習進捗（SM-2アルゴリズム用パラメータ含む）
 
 ### 主要パターン
