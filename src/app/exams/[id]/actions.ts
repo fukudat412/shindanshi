@@ -3,8 +3,7 @@
 import { judgeAnswer } from "@/lib/answer-judge";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-
-const DEFAULT_USER_ID = "default-user";
+import { getCurrentUserId } from "@/lib/user-utils";
 
 // 試験を開始する
 export async function startExam(examId: string) {
@@ -25,7 +24,7 @@ export async function startExam(examId: string) {
   // 新しい受験記録を作成
   const attempt = await prisma.examAttempt.create({
     data: {
-      userId: DEFAULT_USER_ID,
+      userId: await getCurrentUserId(),
       examId,
       status: "IN_PROGRESS",
       remainingTime: exam.timeLimit * 60, // 分を秒に変換
@@ -40,7 +39,8 @@ export async function startExam(examId: string) {
     },
   });
 
-  revalidatePath(`/exams/${examId}`);
+  // 受験ページの描画中に呼ばれるので revalidatePath は呼べない（Next 16 では描画中の呼び出しがエラーになる）。
+  // /exams 以下のページは force-dynamic なので、再検証しなくても最新の記録が表示される
   return attempt;
 }
 

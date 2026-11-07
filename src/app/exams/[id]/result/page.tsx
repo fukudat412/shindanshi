@@ -9,6 +9,7 @@ import { QuizImages } from "@/components/quiz-images";
 import { QuizExplanationPanel } from "@/components/quiz-explanation-panel";
 import { quizImagesInclude } from "@/lib/quiz-image";
 import { isExplanationUnverified } from "@/lib/quiz-explanation";
+import { choiceLabel } from "@/lib/past-exam-sets";
 import {
   CheckCircle,
   XCircle,
@@ -230,10 +231,8 @@ export default async function ExamResultPage({ params, searchParams }: Props) {
                                     : "bg-muted"
                                 }`}
                               >
-                                <span className="font-semibold mr-2">
-                                  {String.fromCharCode(65 + i)}.
-                                </span>
-                                {choice}
+                                <span className="font-semibold mr-2">{choiceLabel(i)}</span>
+                                {choice !== choiceLabel(i) && choice}
                                 {isCorrectChoice && (
                                   <Badge variant="success" className="ml-2 text-xs">
                                     正解

@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { planPastExamSets } from "@/lib/past-exam-sets";
 
 // 過去問を作成
 export async function createExam(formData: FormData) {
@@ -141,5 +142,66 @@ export async function reorderQuestions(
   );
 
   revalidatePath(`/admin/exams/${examId}`);
+  revalidatePath("/exams");
+}
+
+// 過去問（PAST_EXAM）から、年度・科目ごとの本番形式のセットを作る（回数は 1）。
+// 同じ年度・回数・科目のセットがあれば、名前・制限時間・問題を作り直す
+export async function buildPastExamSets() {
+  const [quizzes, subjects] = await Promise.all([
+    prisma.quiz.findMany({
+      where: {
+        origin: "PAST_EXAM",
+        examYear: { not: null },
+        examQuestionNumber: { not: null },
+      },
+      select: {
+        id: true,
+        examYear: true,
+        examQuestionNumber: true,
+        examSubQuestionNumber: true,
+        article: { select: { subjectId: true } },
+      },
+    }),
+    prisma.subject.findMany({ select: { id: true, name: true, order: true } }),
+  ]);
+
+  const plans = planPastExamSets(
+    quizzes.map((q) => ({
+      id: q.id,
+      subjectId: q.article.subjectId,
+      examYear: q.examYear as number,
+      examQuestionNumber: q.examQuestionNumber as number,
+      examSubQuestionNumber: q.examSubQuestionNumber,
+    })),
+    subjects,
+  );
+
+  await prisma.$transaction(
+    plans.map((plan) => {
+      const questions = plan.quizIds.map((quizId, i) => ({ quizId, order: i + 1 }));
+      return prisma.exam.upsert({
+        where: {
+          year_session_subjectId: { year: plan.year, session: 1, subjectId: plan.subjectId },
+        },
+        create: {
+          year: plan.year,
+          session: 1,
+          subjectId: plan.subjectId,
+          name: plan.name,
+          timeLimit: plan.timeLimit,
+          questions: { create: questions },
+        },
+        update: {
+          name: plan.name,
+          timeLimit: plan.timeLimit,
+          // 既存の問題を消してから作る（(examId, order) が一意なので、この順が要る）
+          questions: { deleteMany: {}, create: questions },
+        },
+      });
+    }),
+  );
+
+  revalidatePath("/admin/exams");
   revalidatePath("/exams");
 }

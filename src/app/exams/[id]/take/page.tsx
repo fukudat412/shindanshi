@@ -35,7 +35,7 @@ export default async function ExamTakePage({ params, searchParams }: Props) {
   if (attemptId) {
     attempt = await getAttempt(attemptId);
     if (!attempt || attempt.status === "COMPLETED") {
-      redirect(`/exams/${id}`);
+      redirect(`/exams/${id}/history`);
     }
   } else {
     attempt = await startExam(id);

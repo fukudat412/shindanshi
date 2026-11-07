@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUserId } from "@/lib/user-utils";
 import { notFound } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,8 +16,6 @@ import {
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
-
-const DEFAULT_USER_ID = "default-user";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -40,7 +39,7 @@ async function getExamHistory(examId: string) {
   const attempts = await prisma.examAttempt.findMany({
     where: {
       examId,
-      userId: DEFAULT_USER_ID,
+      userId: await getCurrentUserId(),
       status: "COMPLETED",
     },
     orderBy: {

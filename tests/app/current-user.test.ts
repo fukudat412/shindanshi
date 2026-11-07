@@ -10,6 +10,10 @@ describe("進捗を読み書きするファイルは同じユーザーを使う"
     "src/app/weakness/page.tsx",
     "src/app/subjects/[id]/page.tsx",
     "src/app/articles/[id]/actions.ts",
+    // 年度別試験（/exams）も同じユーザーで受験記録を読み書きする
+    "src/app/exams/page.tsx",
+    "src/app/exams/[id]/actions.ts",
+    "src/app/exams/[id]/history/page.tsx",
   ];
 
   it.each(files)('T-005 AC2 %s に "default-user" が残らず getCurrentUserId を使う', (f) => {

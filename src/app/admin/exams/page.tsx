@@ -3,8 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { prisma } from "@/lib/prisma";
-import { Plus, ClipboardList, Clock, Edit, Trash2, ChevronRight } from "lucide-react";
-import { deleteExam } from "./actions";
+import { Plus, ClipboardList, Clock, Edit, Trash2, ChevronRight, Layers } from "lucide-react";
+import { buildPastExamSets, deleteExam } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -40,13 +40,24 @@ export default async function AdminExamsPage() {
             </p>
           </div>
         </div>
-        <Link href="/admin/exams/new">
-          <Button>
-            <Plus className="w-4 h-4" />
-            新規作成
-          </Button>
-        </Link>
+        <div className="flex gap-2 shrink-0">
+          <form action={buildPastExamSets}>
+            <Button variant="outline">
+              <Layers className="w-4 h-4" />
+              過去問から年度別セットを作る
+            </Button>
+          </form>
+          <Link href="/admin/exams/new">
+            <Button>
+              <Plus className="w-4 h-4" />
+              新規作成
+            </Button>
+          </Link>
+        </div>
       </div>
+      <p className="text-sm text-muted-foreground">
+        「過去問から年度別セットを作る」は、取り込んだ過去問を年度・科目ごとに問題番号順でまとめ、本番と同じ試験時間（60 分または 90 分）のセットにします。同じ年度・科目の第 1 回のセットがあれば、問題を入れ直します。
+      </p>
 
       {exams.length === 0 ? (
         <Card className="border-dashed">

@@ -3,11 +3,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUserId } from "@/lib/user-utils";
 import { ClipboardList, Clock, ChevronRight, FolderOpen, Play, History } from "lucide-react";
 
 export const dynamic = "force-dynamic";
-
-const DEFAULT_USER_ID = "default-user";
 
 async function getExams() {
   const exams = await prisma.exam.findMany({
@@ -26,7 +25,7 @@ async function getExams() {
   // ユーザーの受験履歴を取得
   const attempts = await prisma.examAttempt.findMany({
     where: {
-      userId: DEFAULT_USER_ID,
+      userId: await getCurrentUserId(),
     },
     orderBy: {
       startedAt: "desc",
